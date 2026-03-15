@@ -1,0 +1,14 @@
+{
+  "name": "home-dashboard",
+  "private": true,
+  "packageManager": "pnpm@9.0.6",
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  }
+}
