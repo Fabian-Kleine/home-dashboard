@@ -1,4 +1,4 @@
-import type { ProductionStatus } from "./consts";
+import type { ProductionStatus, WeatherIcon } from "./consts";
 
 export type HealthResponse = {
   ok: true;
@@ -16,14 +16,45 @@ export type ClientConnectionPayload = {
   connectedClients: number;
 };
 
+export type DashboardUpdateClientPayload = {
+  longitude: number;
+  latitude: number;
+  timezone: string;
+}
+
+export type DashboardErrorPayload = {
+  message: string;
+  retryable: boolean;
+};
+
+export type CurrentWeatherData = {
+    temperature: number;
+    relativeHumidity: number;
+    apparentTemperature: number;
+    precipitation: number;
+    rain: number;
+    weatherCode: number;
+    weatherIcon: WeatherIcon;
+    cloudCover: number;
+    windSpeed: number;
+    sunrise: string;
+    sunset: string;
+  };
+
 export type WeatherData = {
-  temperature: number;
-  humidity: number;
-  condition: string;
-  icon: string;
-  windSpeed: number;
-  sunrise: string;
-  sunset: string;
+  daily: {
+    sunrise: string[];
+    sunset: string[];
+    weatherCode: number[];
+    temperatureMax: number[];
+    temperatureMin: number[];
+    daylightDuration: number[];
+    sunshineDuration: number[];
+    cloudCoverMean: number[];
+    cloudCoverMax: number[];
+    cloudCoverMin: number[];
+  };
+  current: CurrentWeatherData;
 };
 
 export type PowerSource = {
@@ -38,7 +69,7 @@ export type EnergyTimePoint = {
 };
 
 export type DashboardData = {
-  weather: WeatherData;
+  weather: CurrentWeatherData;
   solar: PowerSource;
   grid: PowerSource;
   battery: PowerSource & { level: number };
