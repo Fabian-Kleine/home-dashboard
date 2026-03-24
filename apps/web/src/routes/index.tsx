@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
-  Gauge,
+  Maximize2,
+  Minimize2,
   RefreshCw,
-  Zap,
 } from "lucide-react";
 import {
   API_ROUTES,
@@ -23,27 +23,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { WeatherCard } from "@/components/dashboard/weather-card";
-import { PowerFlowDiagram } from "@/components/dashboard/power-flow";
-import { EnergyChart } from "@/components/dashboard/energy-chart";
-import { SummaryCard } from "@/components/dashboard/summary-card";
+import { useFullscreen } from "@/components/fullscreen-context";
 import { getMockDashboard } from "@/lib/mock-data";
+import { WidgetGrid, WidgetHeading } from '@/components/widgets/widget-base';
+import { CloudCoverageWidget, HumidityWidget, RainWidget, SunriseWidget, SunsetWidget, WeatherWidget, WindWidget } from '@/components/widgets/weather-widget';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:4000";
+
 const DEFAULT_LOCATION: WeatherRequestParams = {
   latitude: Number(import.meta.env.VITE_DEFAULT_WEATHER_LATITUDE ?? 51.5072),
   longitude: Number(import.meta.env.VITE_DEFAULT_WEATHER_LONGITUDE ?? -0.1276),
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
 };
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return "Unable to refresh weather right now.";
-}
 
 async function fetchWeather(location: WeatherRequestParams, signal?: AbortSignal) {
   const url = new URL(API_ROUTES.weather, BACKEND_URL);
@@ -73,6 +66,7 @@ function HomePage() {
   const [data, setData] = useState<DashboardData>(getMockDashboard);
   const [location, setLocation] = useState<WeatherRequestParams>(DEFAULT_LOCATION);
   const [connectionAlert, setConnectionAlert] = useState<string | null>(null);
+  const { isFullscreen, isSupported, toggleFullscreen } = useFullscreen();
 
   const weatherQuery = useQuery({
     queryKey: [
@@ -88,13 +82,6 @@ function HomePage() {
     staleTime: REFRESH_INTERVAL_MS - 1_000,
   });
 
-  const refreshing = weatherQuery.isFetching;
-  const hasWeatherRequest =
-    weatherQuery.dataUpdatedAt > 0 || weatherQuery.errorUpdatedAt > 0;
-  const isBackendConnected = hasWeatherRequest && !weatherQuery.isError;
-  const weatherError = weatherQuery.isError
-    ? getErrorMessage(weatherQuery.error)
-    : null;
   const isRetrying = weatherQuery.isFetching && connectionAlert !== null;
 
   useEffect(() => {
@@ -151,73 +138,64 @@ function HomePage() {
 
   return (
     <>
-      <div className="mx-auto flex w-full flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
-
-        {/* ── Top row: Weather + Power Flow diagram ── */}
-        <section className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
-          <WeatherCard
-            data={data.weather}
-            isLoading={refreshing}
-            error={weatherError}
-            isConnected={isBackendConnected}
-          />
-
-          <div className="rounded-2xl bg-slate-900/60 p-4 ring-1 ring-white/5 backdrop-blur">
-            <p className="mb-1 text-xs font-medium tracking-wide text-slate-400">
-              Power Flow
-            </p>
-            <PowerFlowDiagram data={data} />
-          </div>
-        </section>
-
-        {/* ── Total consumption strip ── */}
-        <section className="flex flex-wrap items-center gap-6 rounded-2xl bg-slate-800/50 px-6 py-4 ring-1 ring-white/5">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-rose-500/10">
-              <Zap className="size-5 text-rose-400" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-400">Total Consumption</p>
-              <p className="text-2xl font-bold tracking-tight">
-                {data.consumption.current.toFixed(2)}
-                <span className="ml-1 text-sm font-medium text-slate-500">
-                  {data.consumption.unit}
-                </span>
-              </p>
-            </div>
-          </div>
-
-          <div className="hidden h-8 w-px bg-white/10 sm:block" />
-
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-emerald-500/10">
-              <Gauge className="size-5 text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-400">Self-Sufficiency</p>
-              <p className="text-2xl font-bold tracking-tight">
-                {Math.min(
-                  100,
-                  Math.round(
-                    ((data.solar.current + data.battery.current) /
-                      Math.max(data.consumption.current, 0.01)) *
-                    100
-                  )
-                )}
-                <span className="ml-0.5 text-sm font-medium text-slate-500">
-                  %
-                </span>
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Chart + Summary ── */}
-        <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-          <EnergyChart data={data.energyHistory} />
-          <SummaryCard text={data.summary} />
-        </section>
+      <div className='fixed flex items-center gap-2 right-2 top-2 sm:right-5'>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-lg"
+              onClick={() => void toggleFullscreen()}
+              disabled={!isSupported}
+              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            >
+              {isFullscreen ? <Minimize2 /> : <Maximize2 />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{isSupported ? (isFullscreen ? "Exit fullscreen" : "Enter fullscreen") : "Fullscreen unavailable"}</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-lg" onClick={() => void weatherQuery.refetch()} disabled={weatherQuery.isFetching}>
+              <RefreshCw className={`${weatherQuery.isFetching ? "animate-spin" : ""}`} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Refresh weather data</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
+      <div className="mb-4 w-full px-4 text-3xl font-medium tracking-tighter text-white sm:px-8 lg:px-12">
+        Home
+      </div>
+      <WidgetHeading to="/">
+        Weather
+      </WidgetHeading>
+      <WidgetGrid>
+        <WeatherWidget gridArea={{ rowSpan: 2 }} data={data.weather} />
+        <div
+          className="grid gap-3"
+          style={{ gridRow: "span 2" }}
+        >
+          <CloudCoverageWidget gridArea={{}} data={data.weather} />
+          <HumidityWidget gridArea={{}} data={data.weather} />
+        </div>
+        <div
+          className="grid gap-3"
+          style={{ gridRow: "span 2" }}
+        >
+          <WindWidget gridArea={{}} data={data.weather} />
+          <RainWidget gridArea={{}} data={data.weather} />
+        </div>
+        <div
+          className="grid gap-3"
+          style={{ gridRow: "span 2" }}
+        >
+          <SunriseWidget gridArea={{}} data={data.weather} />
+          <SunsetWidget gridArea={{}} data={data.weather} />
+        </div>
+      </WidgetGrid>
 
       <AlertDialog
         open={connectionAlert !== null}
