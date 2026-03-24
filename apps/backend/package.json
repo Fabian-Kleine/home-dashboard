@@ -14,8 +14,7 @@
     "@repo/shared": "workspace:*",
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "openmeteo": "^1.2.3",
-    "socket.io": "^4.8.1"
+    "openmeteo": "^1.2.3"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",

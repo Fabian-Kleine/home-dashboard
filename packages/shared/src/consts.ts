@@ -1,11 +1,4 @@
 export const APP_NAME = "Home Dashboard";
-export const SOCKET_EVENTS = {
-  clientConnected: "client:connected",
-  serverMessage: "server:message",
-  dashboardUpdate: "dashboard:update",
-  dashboardWeatherUpdate: "dashboard:weatherUpdate",
-  dashboardError: "dashboard:error",
-} as const;
 
 export const API_ROUTES = {
   health: "/health",

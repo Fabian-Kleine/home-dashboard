@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Gauge,
@@ -7,14 +8,12 @@ import {
   Zap,
 } from "lucide-react";
 import {
+  API_ROUTES,
   APP_NAME,
-  SOCKET_EVENTS,
-  type CurrentWeatherData,
   type DashboardData,
-  type DashboardErrorPayload,
-  type DashboardUpdateClientPayload,
+  type WeatherData,
+  type WeatherRequestParams,
 } from "@repo/shared";
-import { io, type Socket } from "socket.io-client";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,128 +33,94 @@ import { getMockDashboard } from "@/lib/mock-data";
 import { getTimeOfDayGradient } from "@/lib/time-gradient";
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
-const REQUEST_TIMEOUT_MS = 15 * 1000;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:4000";
-const DEFAULT_LOCATION: DashboardUpdateClientPayload = {
+const DEFAULT_LOCATION: WeatherRequestParams = {
   latitude: Number(import.meta.env.VITE_DEFAULT_WEATHER_LATITUDE ?? 51.5072),
   longitude: Number(import.meta.env.VITE_DEFAULT_WEATHER_LONGITUDE ?? -0.1276),
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
 };
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Unable to refresh weather right now.";
+}
+
+async function fetchWeather(location: WeatherRequestParams, signal?: AbortSignal) {
+  const url = new URL(API_ROUTES.weather, BACKEND_URL);
+  url.searchParams.set("latitude", String(location.latitude));
+  url.searchParams.set("longitude", String(location.longitude));
+  url.searchParams.set("timezone", location.timezone);
+
+  const response = await fetch(url, {
+    credentials: "include",
+    signal,
+  });
+
+  const payload = (await response.json()) as WeatherData | { error?: string };
+
+  if (!response.ok) {
+    throw new Error(
+      "error" in payload && payload.error
+        ? payload.error
+        : "Unable to refresh weather right now."
+    );
+  }
+
+  return (payload as WeatherData).current;
+}
+
 function App() {
   const [data, setData] = useState<DashboardData>(getMockDashboard);
-  const [refreshing, setRefreshing] = useState(false);
-  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [location, setLocation] = useState<WeatherRequestParams>(DEFAULT_LOCATION);
   const [connectionAlert, setConnectionAlert] = useState<string | null>(null);
-  const [isReconnecting, setIsReconnecting] = useState(false);
-  const [weatherError, setWeatherError] = useState<string | null>(null);
   const bg = useMemo(() => getTimeOfDayGradient(), []);
-  const socketRef = useRef<Socket | null>(null);
-  const locationRef = useRef<DashboardUpdateClientPayload>(DEFAULT_LOCATION);
-  const requestTimeoutRef = useRef<number | null>(null);
-  const requestInFlightRef = useRef(false);
 
-  const clearRequestTimeout = () => {
-    if (requestTimeoutRef.current !== null) {
-      window.clearTimeout(requestTimeoutRef.current);
-      requestTimeoutRef.current = null;
-    }
-  };
+  const weatherQuery = useQuery({
+    queryKey: [
+      "weather",
+      location.latitude,
+      location.longitude,
+      location.timezone,
+    ],
+    queryFn: ({ signal }) => fetchWeather(location, signal),
+    refetchInterval: REFRESH_INTERVAL_MS,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    staleTime: REFRESH_INTERVAL_MS - 1_000,
+  });
 
-  const markSocketDisconnected = (message: string) => {
-    setIsSocketConnected(false);
-    setIsReconnecting(false);
-    requestInFlightRef.current = false;
-    clearRequestTimeout();
-    setRefreshing(false);
-    setConnectionAlert(message);
-  };
+  const refreshing = weatherQuery.isFetching;
+  const hasWeatherRequest =
+    weatherQuery.dataUpdatedAt > 0 || weatherQuery.errorUpdatedAt > 0;
+  const isBackendConnected = hasWeatherRequest && !weatherQuery.isError;
+  const weatherError = weatherQuery.isError
+    ? getErrorMessage(weatherQuery.error)
+    : null;
+  const isRetrying = weatherQuery.isFetching && connectionAlert !== null;
 
-  const requestWeatherUpdate = (
-    nextLocation?: Partial<DashboardUpdateClientPayload>
-  ) => {
-    const socket = socketRef.current;
-
-    if (!socket?.connected) {
-      setWeatherError("Live weather is offline.");
-      setRefreshing(false);
-      requestInFlightRef.current = false;
+  useEffect(() => {
+    if (!weatherQuery.data) {
       return;
     }
 
-    const payload = {
-      ...locationRef.current,
-      ...nextLocation,
-    } satisfies DashboardUpdateClientPayload;
-
-    locationRef.current = payload;
-    requestInFlightRef.current = true;
-    setRefreshing(true);
-    setWeatherError(null);
-    clearRequestTimeout();
-    requestTimeoutRef.current = window.setTimeout(() => {
-      requestInFlightRef.current = false;
-      setRefreshing(false);
-      setWeatherError("Weather refresh timed out.");
-    }, REQUEST_TIMEOUT_MS);
-
-    socket.emit(SOCKET_EVENTS.dashboardUpdate, payload);
-  };
+    setData((currentData) => ({
+      ...currentData,
+      weather: weatherQuery.data,
+      lastUpdated: new Date().toISOString(),
+    }));
+    setConnectionAlert(null);
+  }, [weatherQuery.data]);
 
   useEffect(() => {
-    const socket = io(BACKEND_URL, {
-      withCredentials: true,
-    });
+    if (!weatherQuery.isError) {
+      return;
+    }
 
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
-      setIsSocketConnected(true);
-      setIsReconnecting(false);
-      setConnectionAlert(null);
-      setWeatherError(null);
-      requestWeatherUpdate();
-    });
-
-    socket.on("disconnect", () => {
-      markSocketDisconnected("The live IO connection was terminated.");
-    });
-
-    socket.on("connect_error", () => {
-      markSocketDisconnected("The live IO connection was terminated.");
-      setWeatherError("Unable to connect to live weather.");
-    });
-
-    socket.on(
-      SOCKET_EVENTS.dashboardWeatherUpdate,
-      (weather: CurrentWeatherData) => {
-        requestInFlightRef.current = false;
-        clearRequestTimeout();
-        setData((currentData) => ({
-          ...currentData,
-          weather,
-          lastUpdated: new Date().toISOString(),
-        }));
-        setRefreshing(false);
-        setWeatherError(null);
-      }
-    );
-
-    socket.on(SOCKET_EVENTS.dashboardError, (payload: DashboardErrorPayload) => {
-      requestInFlightRef.current = false;
-      clearRequestTimeout();
-      setRefreshing(false);
-      setWeatherError(payload.message);
-    });
-
-    return () => {
-      requestInFlightRef.current = false;
-      clearRequestTimeout();
-      socket.removeAllListeners();
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, []);
+    setConnectionAlert("The backend weather API is unavailable.");
+  }, [weatherQuery.isError]);
 
   useEffect(() => {
     if (!("geolocation" in navigator)) {
@@ -164,20 +129,16 @@ function App() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const nextLocation: DashboardUpdateClientPayload = {
+        const nextLocation: WeatherRequestParams = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
         };
 
-        locationRef.current = nextLocation;
-
-        if (socketRef.current?.connected) {
-          requestWeatherUpdate(nextLocation);
-        }
+        setLocation(nextLocation);
       },
       () => {
-        locationRef.current = DEFAULT_LOCATION;
+        setLocation(DEFAULT_LOCATION);
       },
       {
         enableHighAccuracy: false,
@@ -187,32 +148,13 @@ function App() {
     );
   }, []);
 
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      if (!requestInFlightRef.current) {
-        requestWeatherUpdate();
-      }
-    }, REFRESH_INTERVAL_MS);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, []);
-
   const handleRefresh = () => {
-    requestWeatherUpdate();
+    void weatherQuery.refetch();
   };
 
   const handleReconnect = () => {
-    const socket = socketRef.current;
-
-    if (!socket) {
-      return;
-    }
-
-    setIsReconnecting(true);
-    setConnectionAlert("Attempting to restore the live IO connection...");
-    socket.connect();
+    setConnectionAlert("Attempting to reach the weather API...");
+    void weatherQuery.refetch();
   };
 
   return (
@@ -245,7 +187,7 @@ function App() {
               size="sm"
               className="gap-1.5 border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-700"
               onClick={handleRefresh}
-              disabled={refreshing || !isSocketConnected}
+              disabled={refreshing}
             >
               <RefreshCw
                 className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
@@ -261,7 +203,7 @@ function App() {
             data={data.weather}
             isLoading={refreshing}
             error={weatherError}
-            isConnected={isSocketConnected}
+            isConnected={isBackendConnected}
           />
 
           <div className="rounded-2xl bg-slate-900/60 p-4 ring-1 ring-white/5 backdrop-blur">
@@ -324,7 +266,7 @@ function App() {
       <AlertDialog
         open={connectionAlert !== null}
         onOpenChange={(open) => {
-          if (!open && !isReconnecting) {
+          if (!open && !isRetrying) {
             setConnectionAlert(null);
           }
         }}
@@ -347,12 +289,12 @@ function App() {
               variant="secondary"
               className="bg-amber-50 text-slate-950 hover:bg-amber-100"
               onClick={handleReconnect}
-              disabled={isSocketConnected || isReconnecting}
+              disabled={isRetrying}
             >
               <RefreshCw
-                className={`size-3.5 ${isReconnecting ? "animate-spin" : ""}`}
+                className={`size-3.5 ${isRetrying ? "animate-spin" : ""}`}
               />
-              {isReconnecting ? "Reconnecting" : "Try reconnecting"}
+              {isRetrying ? "Retrying" : "Try again"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -361,4 +303,4 @@ function App() {
   );
 }
 
-export default App
+export default App;
