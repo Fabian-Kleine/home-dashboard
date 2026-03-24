@@ -6,25 +6,10 @@ export type HealthResponse = {
   timestamp: string;
 };
 
-export type ServerMessagePayload = {
-  message: string;
-  connectedClients: number;
-};
-
-export type ClientConnectionPayload = {
-  id: string;
-  connectedClients: number;
-};
-
-export type DashboardUpdateClientPayload = {
+export type WeatherRequestParams = {
   longitude: number;
   latitude: number;
   timezone: string;
-}
-
-export type DashboardErrorPayload = {
-  message: string;
-  retryable: boolean;
 };
 
 export type CurrentWeatherData = {
