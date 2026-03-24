@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute } from '@tanstack/react-router'
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Gauge,
-  LayoutDashboard,
   RefreshCw,
   Zap,
 } from "lucide-react";
 import {
   API_ROUTES,
-  APP_NAME,
   type DashboardData,
   type WeatherData,
   type WeatherRequestParams,
@@ -27,10 +26,8 @@ import {
 import { WeatherCard } from "@/components/dashboard/weather-card";
 import { PowerFlowDiagram } from "@/components/dashboard/power-flow";
 import { EnergyChart } from "@/components/dashboard/energy-chart";
-import { ProductionBadge } from "@/components/dashboard/production-badge";
 import { SummaryCard } from "@/components/dashboard/summary-card";
 import { getMockDashboard } from "@/lib/mock-data";
-import { getTimeOfDayGradient } from "@/lib/time-gradient";
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:4000";
@@ -72,11 +69,10 @@ async function fetchWeather(location: WeatherRequestParams, signal?: AbortSignal
   return (payload as WeatherData).current;
 }
 
-function App() {
+function HomePage() {
   const [data, setData] = useState<DashboardData>(getMockDashboard);
   const [location, setLocation] = useState<WeatherRequestParams>(DEFAULT_LOCATION);
   const [connectionAlert, setConnectionAlert] = useState<string | null>(null);
-  const bg = useMemo(() => getTimeOfDayGradient(), []);
 
   const weatherQuery = useQuery({
     queryKey: [
@@ -148,54 +144,14 @@ function App() {
     );
   }, []);
 
-  const handleRefresh = () => {
-    void weatherQuery.refetch();
-  };
-
   const handleReconnect = () => {
     setConnectionAlert("Attempting to reach the weather API...");
     void weatherQuery.refetch();
   };
 
   return (
-    <main
-      className="min-h-screen w-full text-white antialiased"
-      style={bg.style}
-    >
+    <>
       <div className="mx-auto flex w-full flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
-        {/* ── Header ── */}
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-500/10">
-              <LayoutDashboard className="size-5 text-emerald-400" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold tracking-tight">
-                {APP_NAME}
-              </h1>
-              <p className="text-xs text-slate-500">
-                Last updated{" "}
-                {new Date(data.lastUpdated).toLocaleTimeString()}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <ProductionBadge status={data.productionStatus} />
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-700"
-              onClick={handleRefresh}
-              disabled={refreshing}
-            >
-              <RefreshCw
-                className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
-              />
-              {refreshing ? "Refreshing" : "Refresh"}
-            </Button>
-          </div>
-        </header>
 
         {/* ── Top row: Weather + Power Flow diagram ── */}
         <section className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
@@ -299,8 +255,10 @@ function App() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </main>
+    </>
   );
 }
 
-export default App;
+export const Route = createFileRoute('/')({
+  component: HomePage,
+});
