@@ -14,7 +14,7 @@ const RootLayout = () => (
                 <Outlet />
             </div>
         </FullscreenProvider>
-        <TanStackRouterDevtools position="bottom-right" />
+        {/* <TanStackRouterDevtools position="bottom-right" /> */}
     </>
 );
 
