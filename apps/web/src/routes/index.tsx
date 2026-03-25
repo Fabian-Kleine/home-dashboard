@@ -26,6 +26,14 @@ import {
 import { useFullscreen } from "@/components/fullscreen-context";
 import { getMockDashboard } from "@/lib/mock-data";
 import { WidgetGrid, WidgetHeading } from '@/components/widgets/widget-base';
+import {
+  BatteryWidget,
+  ConsumptionWidget,
+  GridWidget,
+  ProductionWidget,
+  SolarProductionWidget,
+  SolarSystemWidgetCompact,
+} from '@/components/widgets/solar-widget';
 import { CloudCoverageWidget, HumidityWidget, RainWidget, SunriseWidget, SunsetWidget, WeatherWidget, WindWidget } from '@/components/widgets/weather-widget';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -166,36 +174,66 @@ function HomePage() {
           </TooltipContent>
         </Tooltip>
       </div>
-      <div className="mb-4 w-full px-4 text-3xl font-medium tracking-tighter text-white sm:px-8 lg:px-12">
-        Home
+
+      <div className="space-y-4">
+        <div className="w-full px-4 text-3xl font-medium tracking-tighter text-white sm:px-8 lg:px-12">
+          Home
+        </div>
+
+        <div className="space-y-2">
+          <WidgetHeading to="/">
+            Weather
+          </WidgetHeading>
+          <WidgetGrid>
+            <WeatherWidget gridArea={{ rowSpan: 2 }} data={data.weather} />
+            <div
+              className="grid gap-3"
+              style={{ gridRow: "span 2" }}
+            >
+              <CloudCoverageWidget gridArea={{}} data={data.weather} />
+              <HumidityWidget gridArea={{}} data={data.weather} />
+            </div>
+            <div
+              className="grid gap-3"
+              style={{ gridRow: "span 2" }}
+            >
+              <WindWidget gridArea={{}} data={data.weather} />
+              <RainWidget gridArea={{}} data={data.weather} />
+            </div>
+            <div
+              className="grid gap-3"
+              style={{ gridRow: "span 2" }}
+            >
+              <SunriseWidget gridArea={{}} data={data.weather} />
+              <SunsetWidget gridArea={{}} data={data.weather} />
+            </div>
+          </WidgetGrid>
+        </div>
+
+        <div className="space-y-2">
+          <WidgetHeading to="/">
+            Solar System
+          </WidgetHeading>
+          <WidgetGrid>
+            <SolarSystemWidgetCompact gridArea={{ rowSpan: 2 }} data={data} />
+            <BatteryWidget gridArea={{ rowSpan: 2 }} data={data} />
+            <div
+              className="grid gap-3"
+              style={{ gridRow: "span 2" }}
+            >
+              <ProductionWidget gridArea={{}} data={data} />
+              <SolarProductionWidget gridArea={{}} data={data} />
+            </div>
+            <div
+              className="grid gap-3"
+              style={{ gridRow: "span 2" }}
+            >
+              <ConsumptionWidget gridArea={{}} data={data} />
+              <GridWidget gridArea={{}} data={data} />
+            </div>
+          </WidgetGrid>
+        </div>
       </div>
-      <WidgetHeading to="/">
-        Weather
-      </WidgetHeading>
-      <WidgetGrid>
-        <WeatherWidget gridArea={{ rowSpan: 2 }} data={data.weather} />
-        <div
-          className="grid gap-3"
-          style={{ gridRow: "span 2" }}
-        >
-          <CloudCoverageWidget gridArea={{}} data={data.weather} />
-          <HumidityWidget gridArea={{}} data={data.weather} />
-        </div>
-        <div
-          className="grid gap-3"
-          style={{ gridRow: "span 2" }}
-        >
-          <WindWidget gridArea={{}} data={data.weather} />
-          <RainWidget gridArea={{}} data={data.weather} />
-        </div>
-        <div
-          className="grid gap-3"
-          style={{ gridRow: "span 2" }}
-        >
-          <SunriseWidget gridArea={{}} data={data.weather} />
-          <SunsetWidget gridArea={{}} data={data.weather} />
-        </div>
-      </WidgetGrid>
 
       <AlertDialog
         open={connectionAlert !== null}

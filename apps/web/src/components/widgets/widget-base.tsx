@@ -63,7 +63,7 @@ export function IconWidgetBase({
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-black/30 text-white">
                 <Icon className={cn("size-5", props.iconClassName)} />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 w-full">
                 <h3 className="text-sm font-medium text-white truncate">
                     {title}
                 </h3>
@@ -72,7 +72,7 @@ export function IconWidgetBase({
                         {description}
                     </p>
                 )}
-                {children && <div className="mt-1">{children}</div>}
+                {children && <div className="mt-1 w-full">{children}</div>}
             </div>
         </WidgetBase>
     );
@@ -86,11 +86,11 @@ interface WidgetHeadingProps {
 
 export function WidgetHeading({ children, className, to }: WidgetHeadingProps) {
     return (
-        <Link to={to} className={cn("group flex items-center gap-0.5 w-fit mb-2 px-4 sm:px-8 lg:px-12", to && "cursor-pointer", className)}>
-            <h2 className="text-lg font-semibold tracking-wide text-white mb-0.5">
+        <Link to={to} className={cn("group flex items-center gap-0.5 w-fit px-4 sm:px-8 lg:px-12", to && "cursor-pointer", className)}>
+            <h2 className="text-xl font-semibold tracking-wide text-white mb-0.5">
                 {children}
             </h2>
-            {to && <ChevronRight className="size-5 group-hover:translate-x-0.5 transition-transform" />}
+            {to && <ChevronRight className="size-6 group-hover:translate-x-0.5 transition-transform" />}
         </Link>
     );
 }
