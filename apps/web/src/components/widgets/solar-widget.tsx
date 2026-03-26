@@ -1,5 +1,14 @@
 import type { DashboardData, ProductionStatus } from "@repo/shared";
-import { ArrowLeftRight, ArrowRight, BatteryCharging, House, Leaf, SolarPanel, Sun, TrendingDown, TrendingUp, type LucideIcon } from "lucide-react";
+import {
+    IconArrowRight,
+    IconArrowsLeftRight,
+    IconBatteryCharging,
+    IconHome,
+    IconLeaf,
+    IconSolarPanel,
+    IconTrendingDown,
+    IconTrendingUp,
+} from "@tabler/icons-react";
 
 import { IconWidgetBase, WidgetBase, type WidgetGridArea } from "./widget-base";
 import { PowerFlowDiagram } from "../dashboard/power-flow";
@@ -47,25 +56,25 @@ export function SolarSystemWidgetCompact({ gridArea, data }: SolarWidgetProps) {
             <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2">
                 <div className="min-w-0 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-2 text-center">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-amber-100/70">
-                        <SolarPanel className="size-4 inline-block" />
+                        <IconSolarPanel className="size-5 inline-block" />
                     </div>
                     <div className="mt-1 truncate text-sm font-semibold text-white">{formatPower(data.solar.current, data.solar.unit)}</div>
                 </div>
                 <div className="text-amber-200/80">
-                    <ArrowRight className="size-4 inline-block" />
+                    <IconArrowRight className="size-4 inline-block" />
                 </div>
                 <div className="min-w-0 rounded-2xl border border-sky-300/20 bg-sky-300/10 p-2 text-center">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-sky-100/70">
-                        <House className="size-4 inline-block" />
+                        <IconHome className="size-5 inline-block" />
                     </div>
                     <div className="mt-1 truncate text-sm font-semibold text-white">{formatPower(data.consumption.current, data.consumption.unit)}</div>
                 </div>
                 <div className="text-emerald-200/80">
-                    <ArrowLeftRight className="size-4 inline-block" />
+                    <IconArrowsLeftRight className="size-4 inline-block" />
                 </div>
                 <div className="min-w-0 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-2 text-center">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-100/70">
-                        <BatteryCharging className="size-4 inline-block" />
+                        <IconBatteryCharging className="size-5 inline-block" />
                     </div>
                     <div className="mt-1 truncate text-sm font-semibold text-white">{data.battery.level}%</div>
                 </div>
@@ -121,7 +130,7 @@ export function SolarProductionWidget({ gridArea, data }: SolarWidgetProps) {
     return (
         <IconWidgetBase
             gridArea={gridArea}
-            icon={Sun}
+            icon={IconSolarPanel}
             iconClassName="text-amber-300"
             title="Solar Production"
             description={formatPower(data.solar.current, data.solar.unit)}
@@ -133,7 +142,7 @@ export function ConsumptionWidget({ gridArea, data }: SolarWidgetProps) {
     return (
         <IconWidgetBase
             gridArea={gridArea}
-            icon={House}
+            icon={IconHome}
             iconClassName="text-sky-300"
             title="Home Consumption"
             description={formatPower(data.consumption.current, data.consumption.unit)}
@@ -171,7 +180,7 @@ export function GridWidget({ gridArea, data }: SolarWidgetProps) {
     return (
         <IconWidgetBase
             gridArea={gridArea}
-            icon={ArrowLeftRight}
+            icon={IconArrowsLeftRight}
             iconClassName="text-violet-200"
             title="Grid Exchange"
             description={formatPower(data.grid.current, data.grid.unit)}
@@ -181,21 +190,21 @@ export function GridWidget({ gridArea, data }: SolarWidgetProps) {
 
 const statusConfig: Record<
     ProductionStatus,
-    { label: string; icon: LucideIcon; className: string }
+    { label: string; icon: React.ElementType<{ className?: string }>; className: string }
 > = {
     good: {
         label: "Good production",
-        icon: TrendingUp,
+        icon: IconTrendingUp,
         className: "text-emerald-400",
     },
     average: {
         label: "Average production",
-        icon: Leaf,
+        icon: IconLeaf,
         className: "text-amber-400",
     },
     reduced: {
         label: "Reduced production",
-        icon: TrendingDown,
+        icon: IconTrendingDown,
         className: "text-red-400",
     },
 };

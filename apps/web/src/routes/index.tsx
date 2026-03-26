@@ -1,12 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  AlertTriangle,
-  Maximize2,
-  Minimize2,
-  RefreshCw,
-} from "lucide-react";
+import { IconAlertTriangle, IconRefresh } from "@tabler/icons-react";
 import {
   API_ROUTES,
   type DashboardData,
@@ -23,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useFullscreen } from "@/components/fullscreen-context";
+import { useRegisterPageRefresh } from "@/components/page-refresh-context";
 import { getMockDashboard } from "@/lib/mock-data";
 import { WidgetGrid, WidgetHeading } from '@/components/widgets/widget-base';
 import {
@@ -35,7 +30,6 @@ import {
   SolarSystemWidgetCompact,
 } from '@/components/widgets/solar-widget';
 import { CloudCoverageWidget, HumidityWidget, RainWidget, SunriseWidget, SunsetWidget, WeatherWidget, WindWidget } from '@/components/widgets/weather-widget';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:4000";
@@ -74,7 +68,6 @@ function HomePage() {
   const [data, setData] = useState<DashboardData>(getMockDashboard);
   const [location, setLocation] = useState<WeatherRequestParams>(DEFAULT_LOCATION);
   const [connectionAlert, setConnectionAlert] = useState<string | null>(null);
-  const { isFullscreen, isSupported, toggleFullscreen } = useFullscreen();
 
   const weatherQuery = useQuery({
     queryKey: [
@@ -91,6 +84,17 @@ function HomePage() {
   });
 
   const isRetrying = weatherQuery.isFetching && connectionAlert !== null;
+
+  const handlePageRefresh = useCallback(() => {
+    void weatherQuery.refetch();
+  }, [weatherQuery.refetch]);
+
+  useRegisterPageRefresh({
+    onRefresh: handlePageRefresh,
+    isRefreshing: weatherQuery.isFetching,
+    disabled: weatherQuery.isFetching,
+    label: weatherQuery.isFetching ? "Refreshing data" : "Refresh data",
+  });
 
   useEffect(() => {
     if (!weatherQuery.data) {
@@ -146,42 +150,13 @@ function HomePage() {
 
   return (
     <>
-      <div className='fixed flex items-center gap-2 right-2 top-2 sm:right-5'>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-lg"
-              onClick={() => void toggleFullscreen()}
-              disabled={!isSupported}
-              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-            >
-              {isFullscreen ? <Minimize2 /> : <Maximize2 />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{isSupported ? (isFullscreen ? "Exit fullscreen" : "Enter fullscreen") : "Fullscreen unavailable"}</p>
-          </TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-lg" onClick={() => void weatherQuery.refetch()} disabled={weatherQuery.isFetching}>
-              <RefreshCw className={`${weatherQuery.isFetching ? "animate-spin" : ""}`} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Refresh weather data</p>
-          </TooltipContent>
-        </Tooltip>
-      </div>
-
       <div className="space-y-4">
         <div className="w-full px-4 text-3xl font-medium tracking-tighter text-white sm:px-8 lg:px-12">
           Home
         </div>
 
         <div className="space-y-2">
-          <WidgetHeading to="/">
+          <WidgetHeading to="/weather">
             Weather
           </WidgetHeading>
           <WidgetGrid>
@@ -211,7 +186,7 @@ function HomePage() {
         </div>
 
         <div className="space-y-2">
-          <WidgetHeading to="/">
+          <WidgetHeading to="/solar">
             Solar System
           </WidgetHeading>
           <WidgetGrid>
@@ -246,7 +221,7 @@ function HomePage() {
         <AlertDialogContent>
           <div className="flex gap-2">
             <div className="mb-1 flex size-11 items-center justify-center rounded-2xl bg-amber-500/12 text-amber-300 ring-1 ring-amber-400/20">
-              <AlertTriangle className="size-5" />
+              <IconAlertTriangle className="size-5" />
             </div>
             <AlertDialogHeader>
               <AlertDialogTitle>Live connection unavailable</AlertDialogTitle>
@@ -263,7 +238,7 @@ function HomePage() {
               onClick={handleReconnect}
               disabled={isRetrying}
             >
-              <RefreshCw
+              <IconRefresh
                 className={`size-3.5 ${isRetrying ? "animate-spin" : ""}`}
               />
               {isRetrying ? "Retrying" : "Try again"}

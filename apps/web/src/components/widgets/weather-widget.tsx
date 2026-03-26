@@ -1,7 +1,14 @@
 import type { CurrentWeatherData } from "@repo/shared";
+import {
+    IconCloudFilled,
+    IconDropletFilled,
+    IconSunrise,
+    IconSunset,
+    IconUmbrellaFilled,
+    IconWindsockFilled,
+} from "@tabler/icons-react";
 import { IconWidgetBase, WidgetBase, type WidgetGridArea } from "./widget-base";
 import { WeatherIcon } from "../dashboard/weather-icon";
-import { Cloud, CloudRainWind, Droplets, Sunrise, Sunset, Wind } from "lucide-react";
 
 interface WeatherWidgetProps {
     gridArea: WidgetGridArea;
@@ -90,8 +97,8 @@ export function CloudCoverageWidget({ gridArea, data }: WeatherWidgetProps) {
     return (
         <IconWidgetBase
             gridArea={gridArea}
-            icon={Cloud}
-            iconClassName="fill-white"
+            icon={IconCloudFilled}
+            iconClassName="text-white"
             title="Cloud Coverage"
             description={`${data.cloudCover}%`}
         />
@@ -102,7 +109,7 @@ export function HumidityWidget({ gridArea, data }: WeatherWidgetProps) {
     return (
         <IconWidgetBase
             gridArea={gridArea}
-            icon={Droplets}
+            icon={IconDropletFilled}
             iconClassName="text-blue-400"
             title="Humidity"
             description={`${data.relativeHumidity}%`}
@@ -114,8 +121,8 @@ export function WindWidget({ gridArea, data }: WeatherWidgetProps) {
     return (
         <IconWidgetBase
             gridArea={gridArea}
-            icon={Wind}
-            iconClassName="text-lime-200"
+            icon={IconWindsockFilled}
+            iconClassName="text-red-300"
             title="Wind Speed"
             description={`${data.windSpeed.toFixed(1)} km/h`}
         />
@@ -126,7 +133,7 @@ export function RainWidget({ gridArea, data }: WeatherWidgetProps) {
     return (
         <IconWidgetBase
             gridArea={gridArea}
-            icon={CloudRainWind}
+            icon={IconUmbrellaFilled}
             iconClassName="text-sky-400"
             title="Precipitation"
             description={`${data.precipitation.toFixed(1)} mm`}
@@ -138,8 +145,8 @@ export function SunriseWidget({ gridArea, data }: WeatherWidgetProps) {
     return (
         <IconWidgetBase
             gridArea={gridArea}
-            icon={Sunrise}
-            iconClassName="text-yellow-300 fill-yellow-300"
+            icon={IconSunrise}
+            iconClassName="text-yellow-300"
             title="Sunrise"
             description={formatTime(data.sunrise)}
         />
@@ -150,8 +157,8 @@ export function SunsetWidget({ gridArea, data }: WeatherWidgetProps) {
     return (
         <IconWidgetBase
             gridArea={gridArea}
-            icon={Sunset}
-            iconClassName="text-orange-300 fill-orange-300"
+            icon={IconSunset}
+            iconClassName="text-orange-300"
             title="Sunset"
             description={formatTime(data.sunset)}
         />
