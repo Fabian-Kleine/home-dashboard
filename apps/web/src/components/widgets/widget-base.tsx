@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Link, type LinkOptions } from "@tanstack/react-router";
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import { IconChevronRight } from "@tabler/icons-react";
 
 export function WidgetGrid({
     children,
@@ -42,7 +42,7 @@ export function WidgetBase({
 }
 
 interface IconWidgetBaseProps extends WidgetBaseProps {
-    icon: LucideIcon;
+    icon: React.ElementType<{ className?: string }>;
     iconClassName?: string;
     title: string;
     description?: string;
@@ -51,6 +51,7 @@ interface IconWidgetBaseProps extends WidgetBaseProps {
 export function IconWidgetBase({
     gridArea,
     icon: Icon,
+    iconClassName,
     title,
     description,
     children,
@@ -61,7 +62,7 @@ export function IconWidgetBase({
     return (
         <WidgetBase gridArea={gridArea} className={cn("flex items-center gap-3", className)} style={style} {...props}>
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-black/30 text-white">
-                <Icon className={cn("size-5", props.iconClassName)} />
+                <Icon className={cn("size-5", iconClassName)} />
             </div>
             <div className="min-w-0 w-full">
                 <h3 className="text-sm font-medium text-white truncate">
@@ -90,7 +91,7 @@ export function WidgetHeading({ children, className, to }: WidgetHeadingProps) {
             <h2 className="text-xl font-semibold tracking-wide text-white mb-0.5">
                 {children}
             </h2>
-            {to && <ChevronRight className="size-6 group-hover:translate-x-0.5 transition-transform" />}
+            {to && <IconChevronRight className="size-6 group-hover:translate-x-0.5 transition-transform" />}
         </Link>
     );
 }
