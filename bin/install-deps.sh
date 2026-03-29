@@ -3,8 +3,7 @@
 printf "Installing dependencies...\n"
 
 # This script is used to install the dependencies for the project. It is intended to be run on a Debian-based Linux distribution.
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y curl ca-certificates gnupg lsb-release build-essential
+sudo apt update && sudo apt upgrade 
 
 # install nginx
 sudo apt install -y nginx
