@@ -18,6 +18,9 @@ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || pr
 nvm install --lts
 nvm alias default lts/*
 
+# install pnpm
+npm install -g pnpm
+
 # firewall
 sudo apt install -y ufw
 sudo ufw allow OpenSSH
