@@ -18,6 +18,8 @@ else
 	echo "Skipping git commands (--no-git)"
 fi
 
+pnpm install
+
 cd ./apps/web
 
 pnpm run build
