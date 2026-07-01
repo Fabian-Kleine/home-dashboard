@@ -53,6 +53,30 @@ export type EnergyTimePoint = {
   consumption: number;
 };
 
+export type IsolarLoginRequest = {
+  email: string;
+  password: string;
+};
+
+export type IsolarStatusResponse = {
+  loggedIn: boolean;
+};
+
+export type IsolarPvString = {
+  label: string;
+  powerKw: number;
+};
+
+export type IsolarSolarData = {
+  solarPowerKw: number;
+  gridPowerKw: number;
+  batteryPowerKw: number;
+  batteryLevel: number;
+  loadPowerKw: number;
+  dailyYieldKwh: number;
+  pvStrings: IsolarPvString[];
+};
+
 export type DashboardData = {
   weather: CurrentWeatherData;
   solar: PowerSource;

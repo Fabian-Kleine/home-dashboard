@@ -10,7 +10,9 @@ import {
   IconDotsVertical,
   IconDroplet,
   IconLanguage,
+  IconLogout,
   IconPalette,
+  IconPlugConnected,
   IconRefresh,
   IconSunrise,
   IconSunset,
@@ -20,6 +22,7 @@ import {
 } from "@tabler/icons-react";
 import {
   API_ROUTES,
+  PRODUCTION_STATUS,
   type DashboardData,
   type ProductionStatus,
   type WeatherData,
@@ -51,9 +54,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useFullscreen } from "@/components/fullscreen-context";
+import { useIsolar } from "@/components/isolar-context";
 import { useRegisterPageRefresh } from "@/components/page-refresh-context";
 import { useSettings, type Language, type ThemeMode } from "@/components/settings-context";
 import { getMockDashboard } from "@/lib/mock-data";
+import { IsolarEmptyState } from "@/components/dashboard/isolar-empty-state";
 import { WeatherIcon } from "@/components/dashboard/weather-icon";
 import { PowerFlow } from "@/components/dashboard/power-flow";
 
@@ -115,6 +120,15 @@ function formatTime(value: string) {
   return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+/** No direct "status" field exists on iSolarCloud's real-time data, so derive one from how much of current load solar is covering. */
+function deriveProductionStatus(solarKw: number, loadKw: number): ProductionStatus {
+  if (loadKw <= 0) return solarKw > 0 ? PRODUCTION_STATUS.good : PRODUCTION_STATUS.reduced;
+  const ratio = solarKw / loadKw;
+  if (ratio >= 0.8) return PRODUCTION_STATUS.good;
+  if (ratio >= 0.4) return PRODUCTION_STATUS.average;
+  return PRODUCTION_STATUS.reduced;
+}
+
 /** shadcn Card styled as a frosted glassmorphism tile (design 2A). */
 function GlassCard({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
@@ -129,12 +143,21 @@ function GlassCard({ className, children }: { className?: string; children: Reac
   );
 }
 
+function SolarDataLoadingState() {
+  return (
+    <div className="flex flex-1 items-center justify-center py-6 text-[13px] font-bold text-[#17323a]/50 dark:text-slate-300/60">
+      Loading solar data…
+    </div>
+  );
+}
+
 function HomePage() {
   const [data, setData] = useState<DashboardData>(getMockDashboard);
   const [location, setLocation] = useState<WeatherRequestParams>(DEFAULT_LOCATION);
   const [connectionAlert, setConnectionAlert] = useState<string | null>(null);
   const { isFullscreen, isSupported, toggleFullscreen, container } = useFullscreen();
   const { theme, setTheme, language, setLanguage } = useSettings();
+  const { isLoggedIn: isSungrowConnected, openLoginDialog, logout: disconnectSungrow, solarData } = useIsolar();
 
   const weatherQuery = useQuery({
     queryKey: ["weather", location.latitude, location.longitude, location.timezone],
@@ -197,9 +220,25 @@ function HomePage() {
 
   const now = new Date();
   const weather = data.weather;
-  const production = PRODUCTION_CONFIG[data.productionStatus];
-  const kwhToday = data.energyHistory.reduce((sum, point) => sum + point.production, 0);
-  const gridExporting = data.grid.current >= 0;
+
+  const displayData: DashboardData =
+    isSungrowConnected && solarData
+      ? {
+        ...data,
+        solar: { current: solarData.solarPowerKw, unit: "kW" },
+        grid: { current: solarData.gridPowerKw, unit: "kW" },
+        battery: { current: solarData.batteryPowerKw, unit: "kW", level: Math.round(solarData.batteryLevel) },
+        consumption: { current: solarData.loadPowerKw, unit: "kW" },
+        productionStatus: deriveProductionStatus(solarData.solarPowerKw, solarData.loadPowerKw),
+      }
+      : data;
+
+  const production = PRODUCTION_CONFIG[displayData.productionStatus];
+  const kwhToday =
+    isSungrowConnected && solarData
+      ? solarData.dailyYieldKwh
+      : data.energyHistory.reduce((sum, point) => sum + point.production, 0);
+  const gridExporting = displayData.grid.current >= 0;
 
   const metrics: { label: string; value: string; unit?: string; color: string; icon: TablerIcon }[] = [
     { label: "CLOUD", value: String(weather.cloudCover), unit: "%", color: "#2e8fe6", icon: IconCloud },
@@ -296,6 +335,13 @@ function HomePage() {
                     </DropdownMenuRadioGroup>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={() => (isSungrowConnected ? disconnectSungrow() : openLoginDialog())}
+                >
+                  {isSungrowConnected ? <IconLogout /> : <IconPlugConnected />}
+                  {isSungrowConnected ? "Log out from Sungrow" : "Connect Sungrow account"}
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -313,10 +359,8 @@ function HomePage() {
             </div>
             <div className="relative">
               <div className="text-[86px] font-medium leading-[.9]">{Math.round(weather.temperature)}°</div>
-              <div className="mt-3 flex gap-4 text-sm font-bold text-[#17323a]/60 dark:text-slate-300/70">
+              <div className="mt-3 text-sm font-bold text-[#17323a]/60 dark:text-slate-300/70">
                 <span>Feels like {Math.round(weather.apparentTemperature)}°</span>
-                <span className="text-[#17323a]/30 dark:text-slate-400/40">|</span>
-                <span>Humidity {weather.relativeHumidity}%</span>
               </div>
             </div>
           </GlassCard>
@@ -324,30 +368,46 @@ function HomePage() {
           {/* Production status */}
           <GlassCard className="col-span-12 flex flex-col justify-between gap-4 p-6 lg:col-span-5">
             <div className="text-lg font-semibold">Production Status</div>
-            <div>
-              <div className="text-[52px] font-semibold leading-none" style={{ color: production.color }}>
-                {production.label}
-              </div>
-              <div className="mt-1.5 text-[13.5px] font-bold text-[#17323a]/55 dark:text-slate-300/65">
-                {kwhToday.toFixed(1)} kWh generated today
-              </div>
-            </div>
-            <div>
-              <div className="mb-1.5 flex items-center gap-2">
-                {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="h-2 flex-1 rounded-full"
-                    style={{ background: i < production.segments ? production.color : "var(--track-muted)" }}
-                  />
-                ))}
-              </div>
-              <div className="flex justify-between text-[11px] font-extrabold text-[#17323a]/40 dark:text-slate-400/50">
-                <span>Reduced</span>
-                <span>Average</span>
-                <span style={{ color: production.color }}>Good</span>
-              </div>
-            </div>
+            {isSungrowConnected ? (
+              solarData ? (
+                <>
+                  <div>
+                    <div className="text-[52px] font-semibold leading-none" style={{ color: production.color }}>
+                      {production.label}
+                    </div>
+                    <div className="mt-1.5 text-[13.5px] font-bold text-[#17323a]/55 dark:text-slate-300/65">
+                      {kwhToday.toFixed(1)} kWh generated today
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-1.5 flex items-center gap-2">
+                      {[0, 1, 2].map((i) => (
+                        <div
+                          key={i}
+                          className="h-2 flex-1 rounded-full"
+                          style={{ background: i < production.segments ? production.color : "var(--track-muted)" }}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex justify-between text-[11px] font-extrabold text-[#17323a]/40 dark:text-slate-400/50">
+                      <span style={displayData.productionStatus === PRODUCTION_STATUS.reduced ? { color: production.color } : undefined}>
+                        Reduced
+                      </span>
+                      <span style={displayData.productionStatus === PRODUCTION_STATUS.average ? { color: production.color } : undefined}>
+                        Average
+                      </span>
+                      <span style={displayData.productionStatus === PRODUCTION_STATUS.good ? { color: production.color } : undefined}>
+                        Good
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <SolarDataLoadingState />
+              )
+            ) : (
+              <IsolarEmptyState message="Connect your Sungrow account to see production status" />
+            )}
           </GlassCard>
 
           {/* Weather now */}
@@ -388,45 +448,83 @@ function HomePage() {
                 <IconArrowRight className='size-4 transition-transform group-hover:translate-x-1' />
               </Link>
             </div>
-            <div className="flex items-center gap-5">
-              <div className="flex flex-col items-center gap-1.5">
-                <CircularProgress
-                  value={data.battery.level}
-                  size={88}
-                  showLabel
-                  renderLabel={(value) => `${value}%`}
-                  className="stroke-[#17323a]/10 dark:stroke-white/10"
-                  progressClassName="stroke-[#16a99a]"
-                  labelClassName="text-lg font-semibold text-[#0f7d74] dark:text-teal-300"
-                />
-                <div className="text-xs font-extrabold text-[#17323a]/50 dark:text-slate-300/60">BATTERY</div>
-              </div>
-              <div className="flex flex-1 flex-col gap-3.5">
-                <div>
-                  <div className="text-[11.5px] font-extrabold text-[#17323a]/50 dark:text-slate-300/60">CURRENT USAGE</div>
-                  <div className="mt-0.5 text-2xl font-semibold">{data.consumption.current.toFixed(1)} {data.consumption.unit}</div>
-                </div>
-                <div>
-                  <div className="text-[11.5px] font-extrabold text-[#17323a]/50 dark:text-slate-300/60">
-                    {gridExporting ? "GRID EXPORT" : "GRID IMPORT"}
+            {isSungrowConnected ? (
+              solarData ? (
+                <>
+                  <div className="flex items-center gap-5">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <CircularProgress
+                        value={displayData.battery.level}
+                        size={88}
+                        showLabel
+                        renderLabel={(value) => `${value}%`}
+                        className="stroke-[#17323a]/10 dark:stroke-white/10"
+                        progressClassName="stroke-[#16a99a]"
+                        labelClassName="text-lg font-semibold text-[#0f7d74] dark:text-teal-300"
+                      />
+                      <div className="text-xs font-extrabold text-[#17323a]/50 dark:text-slate-300/60">BATTERY</div>
+                    </div>
+                    <div className="flex flex-1 flex-col gap-3.5">
+                      <div>
+                        <div className="text-[11.5px] font-extrabold text-[#17323a]/50 dark:text-slate-300/60">CURRENT USAGE</div>
+                        <div className="mt-0.5 text-2xl font-semibold">{displayData.consumption.current.toFixed(1)} {displayData.consumption.unit}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11.5px] font-extrabold text-[#17323a]/50 dark:text-slate-300/60">
+                          {gridExporting ? "GRID EXPORT" : "GRID IMPORT"}
+                        </div>
+                        <div className="mt-0.5 text-2xl font-semibold" style={{ color: gridExporting ? "#12a05f" : "#e8794b" }}>
+                          {gridExporting ? "+" : "-"}
+                          {Math.abs(displayData.grid.current).toFixed(1)} {displayData.grid.unit}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-2xl font-semibold" style={{ color: gridExporting ? "#12a05f" : "#e8794b" }}>
-                    {gridExporting ? "+" : "-"}
-                    {Math.abs(data.grid.current).toFixed(1)} {data.grid.unit}
+                  <div className="flex justify-between border-t border-[#17323a]/10 pt-3.5 text-[11.5px] font-extrabold text-[#17323a]/50 dark:border-white/10 dark:text-slate-300/60">
+                    <span>SOLAR GENERATED</span>
+                    <span className="text-[#0f8b7f] dark:text-teal-300">{displayData.solar.current.toFixed(1)} {displayData.solar.unit}</span>
                   </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-between border-t border-[#17323a]/10 pt-3.5 text-[11.5px] font-extrabold text-[#17323a]/50 dark:border-white/10 dark:text-slate-300/60">
-              <span>SOLAR GENERATED</span>
-              <span className="text-[#0f8b7f] dark:text-teal-300">{data.solar.current.toFixed(1)} {data.solar.unit}</span>
-            </div>
+                  {solarData.pvStrings.length > 0 && (
+                    <div className="flex flex-col gap-2.5">
+                      {solarData.pvStrings.map((pvString) => {
+                        const maxPvPowerKw = Math.max(...solarData.pvStrings.map((s) => s.powerKw), 0.1);
+                        const widthPercent = Math.max(4, Math.round((pvString.powerKw / maxPvPowerKw) * 100));
+
+                        return (
+                          <div key={pvString.label} className="flex flex-col gap-1">
+                            <div className="flex items-baseline justify-between text-[13px] font-bold text-[#17323a]/70 dark:text-slate-300/75">
+                              <span>{pvString.label}</span>
+                              <span>{pvString.powerKw.toFixed(1)} kW</span>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-[#17323a]/10 dark:bg-white/10">
+                              <div className="h-full rounded-full bg-[#2e8fe6]" style={{ width: `${widthPercent}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <SolarDataLoadingState />
+              )
+            ) : (
+              <IsolarEmptyState message="Connect your Sungrow account to see battery, grid, and solar data" />
+            )}
           </GlassCard>
 
-          {/* Live power flow — widget P1 */}
+          {/* Live power flow */}
           <GlassCard className="col-span-12 p-7">
             <div className="mb-5 text-lg font-semibold">Live power flow</div>
-            <PowerFlow data={data} />
+            {isSungrowConnected ? (
+              solarData ? (
+                <PowerFlow data={displayData} />
+              ) : (
+                <SolarDataLoadingState />
+              )
+            ) : (
+              <IsolarEmptyState message="Connect your Sungrow account to see live power flow" />
+            )}
           </GlassCard>
 
           {/* AI outlook */}

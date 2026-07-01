@@ -12,12 +12,15 @@
   },
   "dependencies": {
     "@repo/shared": "workspace:*",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
     "express": "^5.1.0",
     "openmeteo": "^1.2.3"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.3",
     "@types/node": "^22.13.10",

@@ -10,6 +10,10 @@ import type { DashboardData } from "@repo/shared";
  */
 export function PowerFlow({ data }: { data: DashboardData }) {
   const fmt = (v: number) => Math.abs(v).toFixed(1);
+  const isSolarActive = data.solar.current > 0;
+  const isBatteryActive = data.battery.level > 0;
+  const isGridActive = Math.abs(data.grid.current) > 0.05;
+  const isGridImporting = data.grid.current < 0;
 
   return (
     <div
@@ -58,7 +62,7 @@ export function PowerFlow({ data }: { data: DashboardData }) {
         </div>
       </Node>
 
-      <FlowLine color="#f5b62c" delays={[0, 0.63, 1.26]} />
+      <FlowLine color="#f5b62c" delays={[0, 0.63, 1.26]} active={isSolarActive} />
 
       {/* Battery */}
       <Node label="BATTERY" value={String(data.battery.level)} unit="%">
@@ -77,7 +81,7 @@ export function PowerFlow({ data }: { data: DashboardData }) {
         </div>
       </Node>
 
-      <FlowLine color="#16a99a" delays={[0.3, 0.93, 1.56]} />
+      <FlowLine color="#16a99a" delays={[0.3, 0.93, 1.56]} active={isBatteryActive} />
 
       {/* Home */}
       <Node label="HOME" value={fmt(data.consumption.current)} unit="kW">
@@ -105,7 +109,7 @@ export function PowerFlow({ data }: { data: DashboardData }) {
         </div>
       </Node>
 
-      <FlowLine color="#1fb36a" delays={[0.15, 0.78, 1.41]} />
+      <FlowLine color="#1fb36a" delays={[0.15, 0.78, 1.41]} active={isGridActive} reverse={isGridImporting} />
 
       {/* Grid */}
       <Node label="GRID" value={`${data.grid.current > 0 ? "+" : data.grid.current < 0 ? "-" : ""}${fmt(data.grid.current)}`} unit="kW">
@@ -155,7 +159,17 @@ function Node({ label, value, unit, children }: { label: string; value: string; 
   );
 }
 
-function FlowLine({ color, delays }: { color: string; delays: number[] }) {
+function FlowLine({
+  color,
+  delays,
+  active = true,
+  reverse = false,
+}: {
+  color: string;
+  delays: number[];
+  active?: boolean;
+  reverse?: boolean;
+}) {
   const dot: CSSProperties = {
     position: "absolute",
     top: -2.5,
@@ -169,9 +183,17 @@ function FlowLine({ color, delays }: { color: string; delays: number[] }) {
 
   return (
     <div style={{ position: "relative", flex: 1, height: 4, margin: "0 8px 44px", borderRadius: 3, background: "var(--flow-track)", maxWidth: 150 }}>
-      {delays.map((d, i) => (
-        <div key={i} style={{ ...dot, animation: `flowdot 1.9s linear infinite ${d}s` }} />
-      ))}
+      {active &&
+        delays.map((d, i) => (
+          <div
+            key={i}
+            style={{
+              ...dot,
+              animation: `flowdot 1.9s linear infinite ${d}s`,
+              animationDirection: reverse ? "reverse" : "normal",
+            }}
+          />
+        ))}
     </div>
   );
 }

@@ -3,6 +3,10 @@ export const APP_NAME = "Home Dashboard";
 export const API_ROUTES = {
   health: "/health",
   weather: "/weather",
+  isolarLogin: "/isolar/login",
+  isolarLogout: "/isolar/logout",
+  isolarStatus: "/isolar/status",
+  isolarSolarData: "/isolar/solar-data",
 } as const;
 
 export const PRODUCTION_STATUS = {

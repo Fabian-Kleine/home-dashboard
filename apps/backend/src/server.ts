@@ -1,3 +1,5 @@
+import "dotenv/config";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import {
@@ -6,6 +8,7 @@ import {
   type HealthResponse,
 } from "@repo/shared";
 import { getWeatherData } from "./lib/weather.js";
+import isolarRoute from "./routes/isolar.route.js";
 import weatherRoute from "./routes/weather.route.js";
 
 const app = express();
@@ -18,6 +21,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 
 app.get(API_ROUTES.health, (_request, response) => {
   const payload: HealthResponse = {
@@ -30,6 +34,7 @@ app.get(API_ROUTES.health, (_request, response) => {
 });
 
 app.use(weatherRoute);
+app.use(isolarRoute);
 
 const port = Number(process.env.PORT ?? 4000);
 
