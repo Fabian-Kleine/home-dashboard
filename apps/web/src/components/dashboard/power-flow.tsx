@@ -1,184 +1,177 @@
+import type { CSSProperties } from "react";
 import type { DashboardData } from "@repo/shared";
 
 /**
- * Power flow diagram — isometric-style SVG showing solar, house, battery, grid
- * with animated flow lines and live watt labels, similar to common solar inverter UIs.
+ * Live power-flow widget — "P1 · Illustrated nodes" from the design system.
+ * A compact row of illustrated solar / battery / home / grid nodes joined by
+ * animated flow lines. Values are wired to the live dashboard data.
+ *
+ * Relies on the `flowdot` keyframes declared globally in `index.css`.
  */
-export function PowerFlowDiagram({ data }: { data: DashboardData }) {
-  const solar = data.solar.current;
-  const battery = data.battery.current;
-  const batteryLevel = data.battery.level;
-  const grid = data.grid.current;
-  const consumption = data.consumption.current;
-
-  const fmt = (v: number, u: string) =>
-    v >= 1 ? `${v.toFixed(1)} ${u}` : `${Math.round(v * 1000)} W`;
+export function PowerFlow({ data }: { data: DashboardData }) {
+  const fmt = (v: number) => Math.abs(v).toFixed(1);
 
   return (
-    <div className="relative mx-auto w-full max-w-[520px] select-none py-2">
-      <svg
-        viewBox="0 0 520 440"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-auto w-full"
-      >
-        {/* ── Animated flow dashes style ── */}
-        <defs>
-          <style>{`
-            @keyframes flowDown  { to { stroke-dashoffset: -20; } }
-            @keyframes flowUp    { to { stroke-dashoffset: 20; } }
-            @keyframes flowRight { to { stroke-dashoffset: -20; } }
-            @keyframes flowLeft  { to { stroke-dashoffset: 20; } }
-          `}</style>
-        </defs>
-
-        {/* ── Flow lines ── */}
-        {/* Solar → House */}
-        {solar > 0 && (
-          <line
-            x1="260" y1="95" x2="260" y2="175"
-            stroke="rgba(250,204,21,0.5)"
-            strokeWidth="3"
-            strokeDasharray="6 4"
-            style={{ animation: "flowDown 0.6s linear infinite" }}
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        background: "var(--flow-bg)",
+        borderRadius: 18,
+        padding: "26px 34px",
+      }}
+    >
+      {/* Solar */}
+      <Node label="SOLAR" value={fmt(data.solar.current)} unit="kW">
+        <div style={{ position: "relative", height: 60, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 6,
+              width: 24,
+              height: 24,
+              borderRadius: "50%",
+              background: "radial-gradient(circle at 40% 40%,#ffd977,#f5b62c)",
+              boxShadow: "0 0 14px rgba(245,182,44,.5)",
+            }}
           />
-        )}
-        {/* House → Battery */}
-        {battery > 0 && (
-          <polyline
-            points="230,270 180,310 130,350"
-            stroke="rgba(52,211,153,0.5)"
-            strokeWidth="3"
-            strokeDasharray="6 4"
-            fill="none"
-            style={{ animation: "flowDown 0.6s linear infinite" }}
-          />
-        )}
-        {/* House → Grid  (export) / Grid → House (import) */}
-        {grid > 0 && (
-          <polyline
-            points="290,270 340,310 390,350"
-            stroke="rgba(96,165,250,0.5)"
-            strokeWidth="3"
-            strokeDasharray="6 4"
-            fill="none"
-            style={{ animation: "flowDown 0.6s linear infinite" }}
-          />
-        )}
+          <div
+            style={{
+              width: 56,
+              height: 38,
+              transform: "perspective(120px) rotateX(24deg)",
+              background: "#1f3a5f",
+              borderRadius: 4,
+              display: "grid",
+              gridTemplateColumns: "repeat(3,1fr)",
+              gridTemplateRows: "repeat(2,1fr)",
+              gap: 3,
+              padding: 4,
+            }}
+          >
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{ background: "#3f83d6", borderRadius: 1 }} />
+            ))}
+          </div>
+        </div>
+      </Node>
 
-        {/* ── Flow labels on lines ── */}
-        {solar > 0 && (
-          <text x="275" y="140" className="fill-yellow-300/80 text-[11px] font-medium">
-            {fmt(solar, data.solar.unit)}
-          </text>
-        )}
-        {battery > 0 && (
-          <text x="126" y="308" className="fill-emerald-300/80 text-[11px] font-medium">
-            {fmt(battery, data.battery.unit)}
-          </text>
-        )}
-        {grid > 0 && (
-          <text x="340" y="308" className="fill-blue-300/80 text-[11px] font-medium">
-            {fmt(grid, data.grid.unit)}
-          </text>
-        )}
+      <FlowLine color="#f5b62c" delays={[0, 0.63, 1.26]} />
 
-        {/* ════════════════  SOLAR PANEL (Isometric)  ════════════════ */}
-        <g transform="translate(210, 10)">
-          {/* Stand */}
-          <path d="M45,85 L55,85 L55,95 L45,95 Z" fill="#475569" />
-          <path d="M35,95 L65,95 L65,100 L35,100 Z" fill="#334155" rx="2" />
+      {/* Battery */}
+      <Node label="BATTERY" value={String(data.battery.level)} unit="%">
+        <div style={{ height: 60, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ position: "relative", width: 54, height: 30, border: "3px solid var(--flow-ink)", borderRadius: 7, padding: 3 }}>
+            <div style={{ position: "absolute", right: -7, top: 8, width: 5, height: 12, background: "var(--flow-ink)", borderRadius: "0 3px 3px 0" }} />
+            <div
+              style={{
+                width: `${Math.max(0, Math.min(100, data.battery.level))}%`,
+                height: "100%",
+                background: "linear-gradient(90deg,#1fb36a,#16a99a)",
+                borderRadius: 3,
+              }}
+            />
+          </div>
+        </div>
+      </Node>
 
-          {/* Thickness (Sides - 3D depth) */}
-          <path d="M10,50 L50,75 L50,85 L10,60 Z" fill="#334155" />
-          <path d="M50,75 L90,50 L90,60 L50,85 Z" fill="#0f172a" />
+      <FlowLine color="#16a99a" delays={[0.3, 0.93, 1.56]} />
 
-          {/* Panel Surface (Diamond face) */}
-          <path d="M50,25 L90,50 L50,75 L10,50 Z" fill="#1e293b" stroke="#475569" strokeWidth="1" />
+      {/* Home */}
+      <Node label="HOME" value={fmt(data.consumption.current)} unit="kW">
+        <div style={{ position: "relative", height: 60, width: 66, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end" }}>
+          <div style={{ position: "absolute", top: 3, right: 13, width: 7, height: 15, background: "#0f8b7f", borderRadius: "2px 2px 0 0" }} />
+          <div style={{ width: 62, height: 26, background: "#16a99a", clipPath: "polygon(50% 0,100% 100%,0 100%)" }} />
+          <div
+            style={{
+              width: 46,
+              height: 32,
+              background: "var(--flow-house-wall)",
+              border: "1px solid var(--flow-house-border)",
+              borderTop: "none",
+              borderRadius: "0 0 4px 4px",
+              position: "relative",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "flex-end",
+            }}
+          >
+            <div style={{ position: "absolute", top: 5, left: 6, width: 9, height: 9, background: "var(--flow-window-bg)", border: "1px solid var(--flow-window-border)", borderRadius: 2 }} />
+            <div style={{ position: "absolute", top: 5, right: 6, width: 9, height: 9, background: "var(--flow-window-bg)", border: "1px solid var(--flow-window-border)", borderRadius: 2 }} />
+            <div style={{ width: 11, height: 15, background: "#16a99a", borderRadius: "3px 3px 0 0" }} />
+          </div>
+        </div>
+      </Node>
 
-          {/* Inner Grid Details */}
-          <path d="M30,37.5 L70,62.5" stroke="#334155" strokeWidth="1" />
-          <path d="M70,37.5 L30,62.5" stroke="#334155" strokeWidth="1" />
-          
-          {/* Subtle reflection/sheen on top quadrant */}
-          <path d="M50,25 L70,37.5 L50,50 L30,37.5 Z" fill="#334155" opacity="0.3" />
-        </g>
-        {/* Solar value */}
-        <text x="260" y="28" textAnchor="middle" className="fill-white text-[18px] font-bold">
-          {fmt(solar, data.solar.unit)}
-        </text>
+      <FlowLine color="#1fb36a" delays={[0.15, 0.78, 1.41]} />
 
-        {/* ════════════════  HOUSE  ════════════════ */}
-        <g transform="translate(210, 170)">
-          {/* Roof */}
-          <polygon points="50,0 0,40 100,40" fill="#334155" stroke="#475569" strokeWidth="1.2" />
-          {/* Walls */}
-          <rect x="15" y="40" width="70" height="55" rx="3" fill="#1e293b" stroke="#334155" strokeWidth="1.2" />
-          {/* Door */}
-          <rect x="40" y="60" width="20" height="35" rx="2" fill="#0f172a" stroke="#475569" strokeWidth="0.8" />
-          {/* Window */}
-          <rect x="22" y="50" width="14" height="12" rx="1.5" fill="#3b82f6" opacity="0.25" stroke="#60a5fa" strokeWidth="0.6" />
-        </g>
-        {/* Consumption value */}
-        <text x="260" y="193" textAnchor="middle" className="fill-white text-[18px] font-bold">
-          {fmt(consumption, data.consumption.unit)}
-        </text>
+      {/* Grid */}
+      <Node label="GRID" value={`${data.grid.current > 0 ? "+" : data.grid.current < 0 ? "-" : ""}${fmt(data.grid.current)}`} unit="kW">
+        <div style={{ height: 60, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          <svg width={58} height={60} viewBox="0 0 56 60">
+            <g stroke="var(--flow-grid-stroke)" strokeWidth={2.2} strokeLinecap="round" fill="none">
+              <line x1={16} y1={58} x2={26} y2={9} />
+              <line x1={40} y1={58} x2={30} y2={9} />
+              <line x1={26} y1={9} x2={30} y2={9} />
+              <line x1={12} y1={16} x2={44} y2={16} />
+              <line x1={9} y1={24} x2={47} y2={24} />
+              <line x1={20} y1={35} x2={36} y2={35} />
+              <line x1={17} y1={47} x2={39} y2={47} />
+              <line x1={20} y1={35} x2={36} y2={47} />
+              <line x1={36} y1={35} x2={20} y2={47} />
+              <line x1={16} y1={58} x2={36} y2={47} />
+              <line x1={40} y1={58} x2={20} y2={47} />
+              <line x1={22} y1={26} x2={34} y2={35} />
+              <line x1={34} y1={26} x2={22} y2={35} />
+              <line x1={25} y1={16} x2={31} y2={9} />
+              <line x1={31} y1={16} x2={25} y2={9} />
+            </g>
+            <g fill="#f5b62c">
+              <circle cx={12} cy={16} r={2.4} />
+              <circle cx={44} cy={16} r={2.4} />
+              <circle cx={9} cy={24} r={2.4} />
+              <circle cx={47} cy={24} r={2.4} />
+              <circle cx={28} cy={16} r={2} />
+            </g>
+          </svg>
+        </div>
+      </Node>
+    </div>
+  );
+}
 
-        {/* ════════════════  BATTERY  ════════════════ */}
-        <g transform="translate(55, 340)">
-          {/* Stack body */}
-          <rect x="10" y="10" width="60" height="70" rx="6" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
-          {/* Segments */}
-          {[0, 1, 2, 3].map((i) => {
-            const segY = 65 - i * 16;
-            const filled = batteryLevel >= (i + 1) * 25;
-            return (
-              <rect
-                key={i}
-                x="17" y={segY} width="46" height="12" rx="2"
-                fill={filled ? "#3b82f6" : "#0f172a"}
-                opacity={filled ? 0.7 : 0.3}
-              />
-            );
-          })}
-        </g>
-        {/* Battery value */}
-        <text x="95" y="435" textAnchor="middle" className="fill-white text-[18px] font-bold">
-          {fmt(battery, data.battery.unit)}
-        </text>
-        {/* Battery % */}
-        <text x="95" y="437" textAnchor="middle">
-          <tspan x="95" dy="17" className="fill-blue-400 text-[12px] font-medium">
-            ■ {batteryLevel}%
-          </tspan>
-        </text>
+function Node({ label, value, unit, children }: { label: string; value: string; unit: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, width: 96 }}>
+      {children}
+      <div style={{ fontWeight: 600, fontSize: 18, color: "var(--flow-ink)" }}>
+        {value}
+        <span style={{ fontSize: 12, color: "var(--flow-muted)" }}> {unit}</span>
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "var(--flow-muted)", letterSpacing: "0.03em" }}>{label}</div>
+    </div>
+  );
+}
 
-        {/* ════════════════  GRID / PYLON  ════════════════ */}
-        <g transform="translate(365, 340)">
-          {/* Lattice tower — simplified */}
-          <polygon points="40,10 20,75 60,75" fill="none" stroke="#64748b" strokeWidth="1.8" />
-          <line x1="27" y1="50" x2="53" y2="50" stroke="#64748b" strokeWidth="1.2" />
-          <line x1="24" y1="62" x2="56" y2="62" stroke="#64748b" strokeWidth="1.2" />
-          {/* Cross braces */}
-          <line x1="30" y1="35" x2="50" y2="50" stroke="#475569" strokeWidth="0.8" />
-          <line x1="50" y1="35" x2="30" y2="50" stroke="#475569" strokeWidth="0.8" />
-          {/* Arms */}
-          <line x1="15" y1="18" x2="40" y2="18" stroke="#64748b" strokeWidth="2" />
-          <line x1="40" y1="18" x2="65" y2="18" stroke="#64748b" strokeWidth="2" />
-          {/* Insulators */}
-          <circle cx="15" cy="18" r="3" fill="#94a3b8" />
-          <circle cx="65" cy="18" r="3" fill="#94a3b8" />
-          {/* Wires */}
-          <line x1="12" y1="21" x2="12" y2="30" stroke="#94a3b8" strokeWidth="0.7" />
-          <line x1="68" y1="21" x2="68" y2="30" stroke="#94a3b8" strokeWidth="0.7" />
-          {/* Base */}
-          <rect x="25" y="75" width="30" height="5" rx="2" fill="#334155" />
-        </g>
-        {/* Grid value */}
-        <text x="425" y="435" textAnchor="middle" className="fill-white text-[18px] font-bold">
-          {fmt(grid, data.grid.unit)}
-        </text>
-      </svg>
+function FlowLine({ color, delays }: { color: string; delays: number[] }) {
+  const dot: CSSProperties = {
+    position: "absolute",
+    top: -2.5,
+    left: 0,
+    width: 9,
+    height: 9,
+    marginLeft: -4,
+    borderRadius: "50%",
+    background: color,
+  };
+
+  return (
+    <div style={{ position: "relative", flex: 1, height: 4, margin: "0 8px 44px", borderRadius: 3, background: "var(--flow-track)", maxWidth: 150 }}>
+      {delays.map((d, i) => (
+        <div key={i} style={{ ...dot, animation: `flowdot 1.9s linear infinite ${d}s` }} />
+      ))}
     </div>
   );
 }

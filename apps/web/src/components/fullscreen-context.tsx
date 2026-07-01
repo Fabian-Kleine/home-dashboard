@@ -13,6 +13,7 @@ type FullscreenContextValue = {
   isFullscreen: boolean;
   isSupported: boolean;
   toggleFullscreen: () => Promise<void>;
+  container: HTMLElement | null;
 };
 
 const FullscreenContext = createContext<FullscreenContextValue | null>(null);
@@ -21,6 +22,12 @@ export function FullscreenProvider({ children }: { children: ReactNode }) {
   const containerRef = useRef<HTMLElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+
+  const setContainerRef = useCallback((node: HTMLElement | null) => {
+    containerRef.current = node;
+    setContainer(node);
+  }, []);
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -58,13 +65,14 @@ export function FullscreenProvider({ children }: { children: ReactNode }) {
       isFullscreen,
       isSupported,
       toggleFullscreen,
+      container,
     }),
-    [isFullscreen, isSupported, toggleFullscreen],
+    [isFullscreen, isSupported, toggleFullscreen, container],
   );
 
   return (
     <FullscreenContext.Provider value={value}>
-      <main ref={containerRef} className="flex min-h-screen overflow-x-clip bg-black">
+      <main ref={setContainerRef} className="flex min-h-screen overflow-x-clip bg-black">
         {children}
       </main>
     </FullscreenContext.Provider>

@@ -1,70 +1,27 @@
 import { Link, useLocation, type LinkOptions } from "@tanstack/react-router";
-import { IconChevronLeft, IconHome, IconHomeFilled, IconMenu2, IconSolarPanel, IconTemperatureSun } from "@tabler/icons-react";
+import { IconChevronLeft, IconMenu2 } from "@tabler/icons-react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useFullscreen } from "./fullscreen-context";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 
-interface SidebarRouteLink {
-    type: "link";
+interface NavLink {
     to: LinkOptions["to"];
     label: string;
-    Icon: React.ElementType<{ className?: string; strokeWidth?: number | string }>;
-    IconActive?: React.ElementType<{ className?: string; strokeWidth?: number | string }>;
+    exact?: boolean;
 }
 
-interface SidebarCategory {
-    type: "category";
-    label: string;
-    links: SidebarRouteLink[];
-}
-
-type SidebarItem = SidebarRouteLink | SidebarCategory;
-
-const links: SidebarItem[] = [
-    {
-        type: "link",
-        to: "/",
-        label: "Home",
-        Icon: IconHome,
-        IconActive: IconHomeFilled,
-    },
-    {
-        type: "category",
-        label: "Outdoors",
-        links: [
-            {
-                type: "link",
-                to: "/weather",
-                label: "Weather",
-                Icon: IconTemperatureSun,
-            },
-            {
-                type: "link",
-                to: "/solar",
-                label: "Solar System",
-                Icon: IconSolarPanel,
-            },
-        ]
-    }
+const NAV_LINKS: NavLink[] = [
+    { to: "/", label: "Home", exact: true },
+    { to: "/weather", label: "Weather" },
+    { to: "/solar", label: "Solar" },
 ];
 
 export function Sidebar() {
     const [isOpen, setIsOpen] = useState(false);
-    const [openCategory, setOpenCategory] = useState<string | undefined>();
     const { isFullscreen } = useFullscreen();
     const { pathname } = useLocation();
-
-    useEffect(() => {
-        const activeCategory = links.find(
-            (item): item is SidebarCategory =>
-                item.type === "category" && item.links.some((link) => link.to === pathname),
-        );
-
-        setOpenCategory(activeCategory?.label);
-    }, [pathname]);
 
     return (
         <>
@@ -72,7 +29,7 @@ export function Sidebar() {
                 <TooltipTrigger asChild>
                     <Button
                         className={cn(
-                            "fixed left-2 top-2 z-20 flex",
+                            "fixed left-2 top-2 z-40 flex text-[#0f7d74] dark:text-teal-300",
                             !isFullscreen && "md:hidden",
                         )}
                         variant="ghost"
@@ -86,94 +43,57 @@ export function Sidebar() {
                     <p>Toggle menu</p>
                 </TooltipContent>
             </Tooltip>
-            <aside className={cn(
-                "top-0 flex h-screen w-[min(22rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] flex-col items-center gap-2 bg-linear-180 from-white/35 to-slate-700/35 px-4 py-12 backdrop-blur-3xl border-r transition-transform z-30",
-                isFullscreen
-                    ? "fixed -translate-x-full"
-                    : "fixed -translate-x-full md:sticky md:translate-x-0 md:w-92",
-                isOpen && "translate-x-0",
-            )}>
-                <Button variant="ghost" size="icon" className={cn("absolute top-2 right-2 md:hidden", isFullscreen && "md:flex")} onClick={() => setIsOpen(false)}>
+
+            <aside
+                className={cn(
+                    "top-0 z-30 flex h-screen w-[min(15rem,calc(100vw-1rem))] shrink-0 flex-col gap-1.5 border-r border-white/45 bg-white/34 px-4 py-7 backdrop-blur-2xl backdrop-saturate-150 transition-transform dark:border-white/10 dark:bg-slate-900/50",
+                    isFullscreen
+                        ? "fixed -translate-x-full"
+                        : "fixed -translate-x-full md:sticky md:translate-x-0",
+                    isOpen && "translate-x-0",
+                )}
+            >
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn("absolute right-2 top-2 text-[#0f7d74] md:hidden dark:text-teal-300", isFullscreen && "md:flex")}
+                    onClick={() => setIsOpen(false)}
+                >
                     <IconChevronLeft />
                 </Button>
-                <nav className="flex flex-col gap-1 w-full">
-                    {links.map((item) => (
-                        item.type === "link" ? (
-                            <SidebarLink key={item.to} {...item} onNavigate={() => setIsOpen(false)} />
-                        ) : (
-                            <SidebarCategorySection
-                                key={item.label}
-                                category={item}
-                                openCategory={openCategory}
-                                onOpenCategoryChange={setOpenCategory}
-                                onNavigate={() => setIsOpen(false)}
-                            />
-                        )
-                    ))}
+
+                {/* Brand */}
+                <div className="flex items-center gap-3 px-2 pb-6 pt-0.5">
+                    <div className="size-9 rounded-xl bg-linear-to-br from-[#16a99a] to-[#2e8fe6]" />
+                    <div className="text-xl font-semibold text-[#17323a] dark:text-slate-100">Aurora</div>
+                </div>
+
+                <div className="px-2.5 pb-2 text-[11px] font-extrabold tracking-[0.08em] text-[#17323a]/45 dark:text-slate-300/50">
+                    DASHBOARDS
+                </div>
+
+                <nav className="flex flex-col gap-1.5">
+                    {NAV_LINKS.map((link) => {
+                        const active = link.exact ? pathname === link.to : pathname.startsWith(link.to as string);
+                        return (
+                            <Link
+                                key={link.to}
+                                to={link.to}
+                                onClick={() => setIsOpen(false)}
+                                className={cn(
+                                    "flex items-center gap-3 rounded-2xl px-3.5 py-3 text-[15px] no-underline! transition-colors",
+                                    active
+                                        ? "bg-white/70 font-extrabold text-[#0f7d74] shadow-[0_4px_14px_rgba(20,90,90,0.1)] dark:bg-white/10 dark:text-teal-300 dark:shadow-[0_4px_14px_rgba(0,0,0,0.3)]"
+                                        : "font-bold text-[#17323a]/60 hover:bg-white/40 dark:text-slate-300/70 dark:hover:bg-white/10",
+                                )}
+                            >
+                                <span className={cn("size-2.5 rounded-full", active ? "bg-[#16a99a]" : "bg-[#17323a]/20 dark:bg-white/20")} />
+                                {link.label}
+                            </Link>
+                        );
+                    })}
                 </nav>
             </aside>
         </>
-    );
-
-}
-
-interface SidebarCategorySectionProps {
-    category: SidebarCategory;
-    openCategory?: string;
-    onOpenCategoryChange: (value?: string) => void;
-    onNavigate: () => void;
-}
-
-function SidebarCategorySection({
-    category,
-    openCategory,
-    onOpenCategoryChange,
-    onNavigate,
-}: SidebarCategorySectionProps) {
-    return (
-        <Accordion
-            type="single"
-            collapsible
-            className="overflow-visible rounded-none border-0 bg-transparent"
-            value={openCategory}
-            onValueChange={onOpenCategoryChange}
-        >
-            <AccordionItem value={category.label} className="border-b-0 bg-transparent data-open:bg-transparent mt-4">
-                <AccordionTrigger className="items-center rounded-md p-1.5 text-lg font-medium text-white hover:bg-black/40 hover:no-underline **:data-[slot=accordion-trigger-icon]:text-white">
-                    {category.label}
-                </AccordionTrigger>
-                <AccordionContent
-                    className="flex flex-col gap-1 px-0 text-white"
-                    contentClassName="px-0.5"
-                >
-                    {category.links.map((link) => (
-                        <SidebarLink key={link.to} {...link} onNavigate={onNavigate} />
-                    ))}
-                </AccordionContent>
-            </AccordionItem>
-        </Accordion>
-    );
-}
-
-export function SidebarLink({
-    to,
-    label,
-    Icon,
-    IconActive,
-    onNavigate,
-}: SidebarRouteLink & { onNavigate?: () => void }) {
-    return (
-        <Link
-            to={to}
-            onClick={onNavigate}
-            className={cn(
-                "group flex items-center gap-2 text-white rounded-md py-2 px-1.5 hover:bg-black/50 transition-colors text-base! no-underline!",
-                "data-[status=active]:bg-white/90 data-[status=active]:text-black! data-[status=active]:hover:bg-white/80 data-[status=active]:font-medium"
-            )}
-        >
-            {Icon && <Icon className={cn("size-6", IconActive && "group-data-[status=active]:hidden")} strokeWidth={1.5} />}
-            {IconActive && <IconActive className={cn("size-6", "hidden group-data-[status=active]:inline")} strokeWidth={1.5} />}
-            {label}
-        </Link>
     );
 }

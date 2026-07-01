@@ -94,7 +94,24 @@
 
   --sidebar-border: oklch(0.922 0 0);
 
-  --sidebar-ring: oklch(0.708 0 0)
+  --sidebar-ring: oklch(0.708 0 0);
+
+  --mesh-background:
+    radial-gradient(at 18% 16%,#63d8c6,transparent 55%),
+    radial-gradient(at 84% 6%,#6fb9f2,transparent 52%),
+    radial-gradient(at 74% 84%,#7fe3aa,transparent 55%),
+    radial-gradient(at 22% 94%,#93d2ff,transparent 55%),
+    linear-gradient(135deg,#d8f1eb,#cfe7f5);
+  --flow-bg: linear-gradient(160deg,#f2f9fb,#eef6f1);
+  --flow-ink: #17323a;
+  --flow-muted: #8aa0a2;
+  --flow-track: #dbe6e6;
+  --flow-house-wall: #eef2f6;
+  --flow-house-border: #d7e0e6;
+  --flow-window-bg: #cfe4f5;
+  --flow-window-border: #b7d2ea;
+  --flow-grid-stroke: #7c8a97;
+  --track-muted: rgba(23,50,58,.12);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -145,6 +162,23 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  --mesh-background:
+    radial-gradient(at 18% 16%,#0f766e,transparent 55%),
+    radial-gradient(at 84% 6%,#1d4ed8,transparent 52%),
+    radial-gradient(at 74% 84%,#065f46,transparent 55%),
+    radial-gradient(at 22% 94%,#0c4a6e,transparent 55%),
+    linear-gradient(135deg,#0b1120,#0f172a);
+  --flow-bg: linear-gradient(160deg,#1c2b3a,#16212c);
+  --flow-ink: #e6edf0;
+  --flow-muted: #93a5ab;
+  --flow-track: #2c3e46;
+  --flow-house-wall: #24343d;
+  --flow-house-border: #3a4b54;
+  --flow-window-bg: #375166;
+  --flow-window-border: #4d6b82;
+  --flow-grid-stroke: #9fb0b6;
+  --track-muted: rgba(255,255,255,.12);
 }
 
 @theme inline {
@@ -196,3 +230,11 @@
     @apply bg-background text-foreground;}
   html {
     @apply font-sans;}}
+
+/* Animated dot that travels along a power-flow line (dashboard P1 widget). */
+@keyframes flowdot {
+  0% { left: -4%; opacity: 0; }
+  14% { opacity: 1; }
+  86% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
