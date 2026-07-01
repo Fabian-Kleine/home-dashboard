@@ -28,6 +28,7 @@ type IsolarContextValue = {
   isLoggingOut: boolean;
   solarData: IsolarSolarData | undefined;
   isSolarDataLoading: boolean;
+  refetchSolarData: () => Promise<unknown>;
 };
 
 const IsolarContext = createContext<IsolarContextValue | null>(null);
@@ -166,6 +167,7 @@ export function IsolarProvider({ children }: { children: ReactNode }) {
       isLoggingOut: logoutMutation.isPending,
       solarData: solarDataQuery.data,
       isSolarDataLoading: solarDataQuery.isLoading,
+      refetchSolarData: solarDataQuery.refetch,
     }),
     [
       isLoggedIn,
@@ -180,6 +182,7 @@ export function IsolarProvider({ children }: { children: ReactNode }) {
       logoutMutation.isPending,
       solarDataQuery.data,
       solarDataQuery.isLoading,
+      solarDataQuery.refetch,
     ]
   );
 

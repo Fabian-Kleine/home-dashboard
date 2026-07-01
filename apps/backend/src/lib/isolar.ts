@@ -299,8 +299,15 @@ export async function getSolarData(token: string, psId: string, inverter?: Isola
         }
     }
 
+    // Prefer summing the per-string readings over the plant-level point: both are
+    // fetched via separate iSolarCloud requests, so the plant meter can reflect a
+    // slightly different instant and drift from the per-string breakdown shown in the UI.
+    const solarPowerKw = pvStrings.length > 0
+        ? pvStrings.reduce((sum, pvString) => sum + pvString.powerKw, 0)
+        : toKw(solarPowerW);
+
     return {
-        solarPowerKw: toKw(solarPowerW),
+        solarPowerKw,
         gridPowerKw: toKw(gridPowerW),
         batteryPowerKw: toKw(batteryPowerW),
         batteryLevel: toPercent(batteryLevel),

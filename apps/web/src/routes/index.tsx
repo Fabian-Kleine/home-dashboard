@@ -157,7 +157,7 @@ function HomePage() {
   const [connectionAlert, setConnectionAlert] = useState<string | null>(null);
   const { isFullscreen, isSupported, toggleFullscreen, container } = useFullscreen();
   const { theme, setTheme, language, setLanguage } = useSettings();
-  const { isLoggedIn: isSungrowConnected, openLoginDialog, logout: disconnectSungrow, solarData } = useIsolar();
+  const { isLoggedIn: isSungrowConnected, openLoginDialog, logout: disconnectSungrow, solarData, refetchSolarData } = useIsolar();
 
   const weatherQuery = useQuery({
     queryKey: ["weather", location.latitude, location.longitude, location.timezone],
@@ -172,7 +172,10 @@ function HomePage() {
 
   const handlePageRefresh = useCallback(() => {
     void weatherQuery.refetch();
-  }, [weatherQuery.refetch]);
+    if (isSungrowConnected) {
+      void refetchSolarData();
+    }
+  }, [weatherQuery.refetch, isSungrowConnected, refetchSolarData]);
 
   useRegisterPageRefresh({
     onRefresh: handlePageRefresh,
@@ -389,14 +392,23 @@ function HomePage() {
                         />
                       ))}
                     </div>
-                    <div className="flex justify-between text-[11px] font-extrabold text-[#17323a]/40 dark:text-slate-400/50">
-                      <span style={displayData.productionStatus === PRODUCTION_STATUS.reduced ? { color: production.color } : undefined}>
+                    <div className="flex gap-2 text-[11px] font-extrabold text-[#17323a]/40 dark:text-slate-400/50">
+                      <span
+                        className="flex-1 text-left"
+                        style={displayData.productionStatus === PRODUCTION_STATUS.reduced ? { color: production.color } : undefined}
+                      >
                         Reduced
                       </span>
-                      <span style={displayData.productionStatus === PRODUCTION_STATUS.average ? { color: production.color } : undefined}>
+                      <span
+                        className="flex-1 text-center"
+                        style={displayData.productionStatus === PRODUCTION_STATUS.average ? { color: production.color } : undefined}
+                      >
                         Average
                       </span>
-                      <span style={displayData.productionStatus === PRODUCTION_STATUS.good ? { color: production.color } : undefined}>
+                      <span
+                        className="flex-1 text-right"
+                        style={displayData.productionStatus === PRODUCTION_STATUS.good ? { color: production.color } : undefined}
+                      >
                         Good
                       </span>
                     </div>
