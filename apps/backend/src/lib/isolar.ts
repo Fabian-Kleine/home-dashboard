@@ -41,6 +41,14 @@ const POINT_BATTERY_POWER_EMS = "83326"; // Energy Storage Active Power (EMS) (W
 const POINT_BATTERY_LEVEL = "83252"; // Battery Level (SOC) (%)
 const POINT_BATTERY_LEVEL_EMS = "83334"; // Energy Storage SOC (EMS) (%)
 
+// Installations with no separate plant-level smart-meter device don't populate
+// POINT_GRID_POWER/_EMS at all (neither at plant nor inverter level). Their grid
+// interaction is instead split into two unsigned device-level (Common Energy Storage
+// Inverter) points, which we net into a single signed value matching the app's
+// existing "positive = export" convention.
+const POINT_FEED_IN_POWER = "13121"; // Feed-in (export) Power (W), device-level
+const POINT_PURCHASED_POWER = "13149"; // Purchased (import) Power (W), device-level
+
 // Per-string DC input, keyed by device type — plain inverters report string
 // power directly, while ESS/hybrid inverters only report MPPT voltage and
 // current, so power has to be computed (P = V * I). Labels match this
@@ -266,6 +274,56 @@ async function getPvStrings(token: string, inverter: IsolarInverterRef): Promise
         .filter((pvString) => pvString.powerKw > 0);
 }
 
+// Some hybrid/ESS installations have no separate plant-level smart-meter device, so grid
+// and battery active power never appear on the plant's own real-time data — only on the
+// inverter device itself. This is queried as a fallback whenever the plant-level lookup
+// comes up empty for either point.
+async function getInverterGridAndBatteryPower(
+    token: string,
+    inverter: IsolarInverterRef
+): Promise<{ gridPowerW: number | undefined; batteryPowerW: number | undefined }> {
+    const { appkey, accessKey } = getIsolarCredentials();
+
+    const data = await callIsolarApi<IsolarRealTimeDataResult>(
+        ISOLAR_REAL_TIME_DATA_PATH,
+        accessKey,
+        {
+            appkey,
+            device_type: inverter.deviceType,
+            ps_key_list: [inverter.psKey],
+            point_id_list: [
+                POINT_GRID_POWER,
+                POINT_GRID_POWER_EMS,
+                POINT_BATTERY_POWER,
+                POINT_BATTERY_POWER_EMS,
+                POINT_FEED_IN_POWER,
+                POINT_PURCHASED_POWER,
+            ],
+        },
+        token
+    );
+
+    const point = data.device_point_list?.[0]?.device_point;
+
+    if (!point) return { gridPowerW: undefined, batteryPowerW: undefined };
+
+    let gridPowerW = firstDefinedNumber(point[`p${POINT_GRID_POWER}`], point[`p${POINT_GRID_POWER_EMS}`]);
+
+    if (gridPowerW === undefined) {
+        const feedInPowerW = firstDefinedNumber(point[`p${POINT_FEED_IN_POWER}`]);
+        const purchasedPowerW = firstDefinedNumber(point[`p${POINT_PURCHASED_POWER}`]);
+
+        if (feedInPowerW !== undefined || purchasedPowerW !== undefined) {
+            gridPowerW = (feedInPowerW ?? 0) - (purchasedPowerW ?? 0);
+        }
+    }
+
+    return {
+        gridPowerW,
+        batteryPowerW: firstDefinedNumber(point[`p${POINT_BATTERY_POWER}`], point[`p${POINT_BATTERY_POWER_EMS}`]),
+    };
+}
+
 export async function getSolarData(token: string, psId: string, inverter?: IsolarInverterRef): Promise<IsolarSolarData> {
     const { appkey, accessKey } = getIsolarCredentials();
     const psKey = `${psId}_${PLANT_DEVICE_TYPE}_0_0`;
@@ -286,9 +344,20 @@ export async function getSolarData(token: string, psId: string, inverter?: Isola
     const solarPowerW = firstDefinedNumber(point[`p${POINT_SOLAR_POWER}`]);
     const dailyYieldWh = firstDefinedNumber(point[`p${POINT_DAILY_YIELD}`]);
     const loadPowerW = firstDefinedNumber(point[`p${POINT_LOAD_POWER}`], point[`p${POINT_LOAD_POWER_EMS}`]);
-    const gridPowerW = firstDefinedNumber(point[`p${POINT_GRID_POWER}`], point[`p${POINT_GRID_POWER_EMS}`]);
-    const batteryPowerW = firstDefinedNumber(point[`p${POINT_BATTERY_POWER}`], point[`p${POINT_BATTERY_POWER_EMS}`]);
     const batteryLevel = firstDefinedNumber(point[`p${POINT_BATTERY_LEVEL}`], point[`p${POINT_BATTERY_LEVEL_EMS}`]);
+
+    let gridPowerW = firstDefinedNumber(point[`p${POINT_GRID_POWER}`], point[`p${POINT_GRID_POWER_EMS}`]);
+    let batteryPowerW = firstDefinedNumber(point[`p${POINT_BATTERY_POWER}`], point[`p${POINT_BATTERY_POWER_EMS}`]);
+
+    if ((gridPowerW === undefined || batteryPowerW === undefined) && inverter) {
+        try {
+            const inverterPower = await getInverterGridAndBatteryPower(token, inverter);
+            gridPowerW ??= inverterPower.gridPowerW;
+            batteryPowerW ??= inverterPower.batteryPowerW;
+        } catch (error) {
+            console.warn("Could not fetch inverter-level grid/battery power:", error);
+        }
+    }
 
     let pvStrings: IsolarPvString[] = [];
 
