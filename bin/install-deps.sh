@@ -25,6 +25,7 @@ npm install -g pnpm
 sudo apt install -y ufw
 sudo ufw allow OpenSSH
 sudo ufw allow 'Nginx Full'   # opens 80/443
+sudo ufw allow 4000/tcp       # backend API, reached directly by browsers on the LAN
 sudo ufw allow 5432/tcp
 sudo ufw enable
 
