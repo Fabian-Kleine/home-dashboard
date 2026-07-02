@@ -73,6 +73,10 @@ export const en = {
     sunrise: "SUNRISE",
     sunset: "SUNSET",
   },
+  weatherForecast: {
+    title: "Forecast",
+    today: "Today",
+  },
   solarSystem: {
     title: "Solar system",
     details: "Details",
@@ -191,6 +195,10 @@ export const de: typeof en = {
     sunrise: "SONNENAUFGANG",
     sunset: "SONNENUNTERGANG",
   },
+  weatherForecast: {
+    title: "Vorhersage",
+    today: "Heute",
+  },
   solarSystem: {
     title: "Solaranlage",
     details: "Details",
@@ -308,6 +316,10 @@ export const nl: typeof en = {
     precip: "NEERSLAG",
     sunrise: "ZONSOPKOMST",
     sunset: "ZONSONDERGANG",
+  },
+  weatherForecast: {
+    title: "Vooruitzicht",
+    today: "Vandaag",
   },
   solarSystem: {
     title: "Zonnesysteem",

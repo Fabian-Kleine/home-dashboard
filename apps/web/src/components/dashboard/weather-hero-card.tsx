@@ -8,7 +8,7 @@ import { WeatherOutdatedBadge } from "@/components/dashboard/weather-outdated-ba
 import { useTranslation } from "@/lib/use-translation";
 import type { TranslationDict } from "@/lib/translations";
 
-function describeWeather(weatherCode: number, t: TranslationDict["weatherHero"]) {
+export function describeWeather(weatherCode: number, t: TranslationDict["weatherHero"]) {
   if (weatherCode === 0) return t.clearSky;
   if (weatherCode === 1 || weatherCode === 2) return t.partlyCloudy;
   if (weatherCode === 3) return t.overcast;

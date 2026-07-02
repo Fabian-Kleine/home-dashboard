@@ -9,11 +9,17 @@ const LOCAL_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
     minute: "2-digit",
     hourCycle: "h23",
 });
+const LOCAL_DATE_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+});
 
 const defaultWeatherParams = {
     daily: ["sunrise", "sunset", "weather_code", "temperature_2m_max", "temperature_2m_min", "daylight_duration", "sunshine_duration", "cloud_cover_mean", "cloud_cover_max", "cloud_cover_min"],
     current: ["temperature_2m", "relative_humidity_2m", "apparent_temperature", "precipitation", "rain", "weather_code", "cloud_cover", "wind_speed_10m"],
-    forecast_days: 1,
+    forecast_days: 7,
 }
 
 function delay(ms: number) {
@@ -46,6 +52,10 @@ function shouldRetryWeatherRequest(error: unknown): boolean {
 
 function formatLocalTime(date: Date): string {
     return LOCAL_TIME_FORMATTER.format(date);
+}
+
+function formatLocalDate(date: Date): string {
+    return LOCAL_DATE_FORMATTER.format(date);
 }
 
 function getMinutesFromTimeString(value: string): number {
@@ -155,9 +165,18 @@ export async function getWeatherData(latitude: number, longitude: number, timezo
                     sunset: weatherData.daily.sunset[0] ? formatLocalTime(weatherData.daily.sunset[0]) : formatLocalTime(weatherData.current.time),
                 },
                 daily: {
+                    time: weatherData.daily.time.map((value) => formatLocalDate(value)),
                     sunrise: weatherData.daily.sunrise.map((value) => formatLocalTime(value)),
                     sunset: weatherData.daily.sunset.map((value) => formatLocalTime(value)),
                     weatherCode: weatherData.daily.weather_code,
+                    weatherIcon: weatherData.daily.weather_code.map((code, index) =>
+                        getWeatherIcon(
+                            code,
+                            weatherData.daily.sunrise[index] ? formatLocalTime(weatherData.daily.sunrise[index]) : formatLocalTime(weatherData.current.time),
+                            weatherData.daily.sunset[index] ? formatLocalTime(weatherData.daily.sunset[index]) : formatLocalTime(weatherData.current.time),
+                            timezone,
+                        )
+                    ),
                     temperatureMax: weatherData.daily.temperature_2m_max,
                     temperatureMin: weatherData.daily.temperature_2m_min,
                     daylightDuration: weatherData.daily.daylight_duration,

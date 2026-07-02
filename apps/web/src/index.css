@@ -271,3 +271,16 @@
   86% { opacity: 1; }
   100% { left: 100%; opacity: 0; }
 }
+
+/* Isometric solar-roof scene (dashboard solar page): dashed flow lines from roof to battery ring, and a gentle bob on the per-roof kW labels. */
+@keyframes iso-flow {
+  to { stroke-dashoffset: -48; }
+}
+@keyframes iso-bob {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(0, -5px); }
+}
+@keyframes iso-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.5); opacity: 0.35; }
+}

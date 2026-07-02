@@ -7,27 +7,34 @@ import { IsolarEmptyState } from "@/components/dashboard/isolar-empty-state";
 import { SolarDataLoadingState } from "@/components/dashboard/solar-data-loading-state";
 import { CircularProgress } from "@/components/ui/progress";
 import { useTranslation } from "@/lib/use-translation";
+import { cn } from "@/lib/utils";
 
 export function SolarSystemCard({
   isSungrowConnected,
   solarData,
   displayData,
+  showDetailsLink = true,
+  className,
 }: {
   isSungrowConnected: boolean;
   solarData: IsolarSolarData | undefined;
   displayData: DashboardData;
+  showDetailsLink?: boolean;
+  className?: string;
 }) {
   const { t } = useTranslation();
   const gridExporting = displayData.grid.current >= 0;
 
   return (
-    <GlassCard className="col-span-12 flex flex-col gap-4 p-6 lg:col-span-5">
+    <GlassCard className={cn("col-span-12 flex flex-col gap-4 p-6 lg:col-span-5", className)}>
       <div className="flex items-center justify-between">
         <div className="text-lg font-semibold">{t.solarSystem.title}</div>
-        <Link to="/solar" className="group flex items-center gap-1 text-[13px] font-extrabold text-[#0f8b7f] no-underline dark:text-teal-300">
-          {t.solarSystem.details}
-          <IconArrowRight className='size-4 transition-transform group-hover:translate-x-1' />
-        </Link>
+        {showDetailsLink && (
+          <Link to="/solar" className="group flex items-center gap-1 text-[13px] font-extrabold text-[#0f8b7f] no-underline dark:text-teal-300">
+            {t.solarSystem.details}
+            <IconArrowRight className='size-4 transition-transform group-hover:translate-x-1' />
+          </Link>
+        )}
       </div>
       {isSungrowConnected ? (
         solarData ? (

@@ -1,5 +1,5 @@
 import { Link, useLocation, type LinkOptions } from "@tanstack/react-router";
-import { IconChevronLeft, IconMenu2 } from "@tabler/icons-react";
+import { IconChevronLeft, IconCloud, IconCloudFilled, IconHome, IconHomeFilled, IconMenu2, IconSolarPanel, type TablerIcon } from "@tabler/icons-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/use-translation";
@@ -10,6 +10,8 @@ import { useFullscreen } from "./fullscreen-context";
 interface NavLink {
     to: LinkOptions["to"];
     label: string;
+    icon: TablerIcon;
+    iconActive?: TablerIcon;
     exact?: boolean;
 }
 
@@ -20,9 +22,9 @@ export function Sidebar() {
     const { t } = useTranslation();
 
     const NAV_LINKS: NavLink[] = [
-        { to: "/", label: t.sidebar.navHome, exact: true },
-        { to: "/weather", label: t.sidebar.navWeather },
-        { to: "/solar", label: t.sidebar.navSolar },
+        { to: "/", label: t.sidebar.navHome, exact: true, icon: IconHome, iconActive: IconHomeFilled },
+        { to: "/weather", label: t.sidebar.navWeather, icon: IconCloud, iconActive: IconCloudFilled },
+        { to: "/solar", label: t.sidebar.navSolar, icon: IconSolarPanel },
     ];
 
     return (
@@ -83,7 +85,11 @@ export function Sidebar() {
                                         : "font-bold text-[#17323a]/60 hover:bg-white/40 dark:text-slate-300/70 dark:hover:bg-white/10",
                                 )}
                             >
-                                <span className={cn("size-2.5 rounded-full", active ? "bg-[#16a99a]" : "bg-[#17323a]/20 dark:bg-white/20")} />
+                                {active && link.iconActive ? (
+                                    <link.iconActive className="size-5" />
+                                ) : (
+                                    <link.icon className="size-5" />
+                                )}
                                 {link.label}
                             </Link>
                         );

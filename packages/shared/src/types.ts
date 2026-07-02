@@ -28,9 +28,11 @@ export type CurrentWeatherData = {
 
 export type WeatherData = {
   daily: {
+    time: string[];
     sunrise: string[];
     sunset: string[];
     weatherCode: number[];
+    weatherIcon: WeatherIcon[];
     temperatureMax: number[];
     temperatureMin: number[];
     daylightDuration: number[];

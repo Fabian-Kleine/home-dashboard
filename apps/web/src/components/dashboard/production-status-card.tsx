@@ -4,6 +4,7 @@ import { GlassCard } from "@/components/dashboard/glass-card";
 import { IsolarEmptyState } from "@/components/dashboard/isolar-empty-state";
 import { SolarDataLoadingState } from "@/components/dashboard/solar-data-loading-state";
 import { useTranslation } from "@/lib/use-translation";
+import { cn } from "@/lib/utils";
 
 const PRODUCTION_VISUALS: Record<ProductionStatus, { color: string; segments: number }> = {
   good: { color: "#12a05f", segments: 3 },
@@ -16,17 +17,19 @@ export function ProductionStatusCard({
   solarData,
   productionStatus,
   kwhToday,
+  className,
 }: {
   isSungrowConnected: boolean;
   solarData: IsolarSolarData | undefined;
   productionStatus: ProductionStatus;
   kwhToday: number;
+  className?: string;
 }) {
   const { t } = useTranslation();
   const production = { ...PRODUCTION_VISUALS[productionStatus], label: t.productionStatus[productionStatus] };
 
   return (
-    <GlassCard className="col-span-12 flex flex-col justify-between gap-4 p-6 lg:col-span-5">
+    <GlassCard className={cn("col-span-12 flex flex-col justify-between gap-4 p-6 lg:col-span-5", className)}>
       <div className="text-lg font-semibold">{t.productionStatus.title}</div>
       {isSungrowConnected ? (
         solarData ? (

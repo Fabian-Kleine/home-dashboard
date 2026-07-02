@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import {
   IconArrowRight,
   IconCloud,
@@ -36,6 +36,8 @@ export function WeatherNowCard({
   onRetry: () => void;
 }) {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
+  const showDetailsLink = pathname !== "/weather";
 
   if (!weather) {
     return (
@@ -62,10 +64,12 @@ export function WeatherNowCard({
           <div className="text-lg font-semibold">{t.weatherNow.title}</div>
           {isOutdated && <WeatherOutdatedBadge />}
         </div>
-        <Link to="/weather" className="group flex items-center gap-1 text-[13px] font-extrabold text-[#0f8b7f] no-underline dark:text-teal-300">
-          {t.weatherNow.details}
-          <IconArrowRight className='size-4 transition-transform group-hover:translate-x-1' />
-        </Link>
+        {showDetailsLink && (
+          <Link to="/weather" className="group flex items-center gap-1 text-[13px] font-extrabold text-[#0f8b7f] no-underline dark:text-teal-300">
+            {t.weatherNow.details}
+            <IconArrowRight className='size-4 transition-transform group-hover:translate-x-1' />
+          </Link>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {metrics.map((metric) => (
