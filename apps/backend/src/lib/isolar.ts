@@ -9,6 +9,7 @@ const ISOLAR_QUERY_STATION_LIST_PATH = "/getPowerStationList";
 const ISOLAR_DEVICE_LIST_PATH = "/getDeviceList";
 const ISOLAR_REAL_TIME_DATA_PATH = "/getDeviceRealTimeData";
 const ISOLAR_SYS_CODE = "901";
+const ISOLAR_LANG = "_de_DE";
 
 // Plants are queryable as a virtual "device" of this type, keyed by
 // `{ps_id}_11_0_0` — confirmed against multiple iSolarCloud doc examples.
@@ -23,7 +24,7 @@ export const ISOLAR_TOKEN_COOKIE = "isolar_token";
 export const ISOLAR_PS_ID_COOKIE = "isolar_ps_id";
 export const ISOLAR_INVERTER_PS_KEY_COOKIE = "isolar_inverter_ps_key";
 export const ISOLAR_INVERTER_DEVICE_TYPE_COOKIE = "isolar_inverter_device_type";
-export const ISOLAR_TOKEN_MAX_AGE_MS = 55 * 60 * 1000;
+export const ISOLAR_TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Plant-level measuring points (see Appendix 10 / Common Plant Measuring Points).
 // Residential storage inverters and EMS-based commercial storage systems expose
@@ -112,7 +113,7 @@ async function callIsolarApi<T>(
         sys_code: ISOLAR_SYS_CODE,
     };
 
-    const requestBody = token ? { ...body, token } : body;
+    const requestBody = { ...body, lang: ISOLAR_LANG, ...(token ? { token } : {}) };
 
     const response = await fetch(`${getIsolarBaseUrl()}${path}`, {
         method: "POST",
