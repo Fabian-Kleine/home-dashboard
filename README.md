@@ -39,7 +39,7 @@ cp apps/backend/.env.example apps/backend/.env
 
 | Variable | Description |
 | --- | --- |
-| `FRONTEND_ORIGIN` | Origin allowed by CORS (default `http://localhost:5173`) |
+| `FRONTEND_ORIGIN` | Comma-separated list of origins allowed by CORS (default `http://localhost:5173`) |
 | `PORT` | Backend port (default `4000`) |
 | `OPENMETEO_URL` | Open-Meteo forecast API base URL |
 | `ISOLAR_CLOUD_URL` | iSolarCloud OpenAPI gateway base URL |

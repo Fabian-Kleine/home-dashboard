@@ -43,7 +43,7 @@ Because `apps/web` and `apps/backend` both depend on `@repo/shared`, changes to 
 - `bin/` — Bash deployment helpers for a Linux target host, not used in local dev: `install-deps.sh` provisions a fresh Debian box (nginx, nvm/node, pnpm, ufw firewall rules), `deploy.sh` does `git reset --hard origin/main` + `pnpm install` + build + copy `apps/web/dist` to a target directory (default `/var/www/html`, nginx's default document root, so the app is served at `/`), served behind nginx. The frontend is a static build; only the backend runs as a long-lived Node process.
 
 **Backend (`apps/backend/src`)**:
-- `server.ts` wires up CORS (locked to `FRONTEND_ORIGIN`, credentials enabled), `cookie-parser`, JSON body parsing, a `/health` check, and mounts route modules.
+- `server.ts` wires up CORS (locked to `FRONTEND_ORIGIN`, a comma-separated allowlist, credentials enabled), `cookie-parser`, JSON body parsing, a `/health` check, and mounts route modules.
 - `routes/*.route.ts` are thin Express routers; they read/write iSolarCloud auth cookies and delegate real work to `lib/*.ts`.
 - `lib/weather.ts` wraps the `openmeteo` client (Open-Meteo forecast API), retries transient network errors, and maps Open-Meteo weather codes + day/night (via sunrise/sunset) to the app's `WeatherIcon` set.
 - `lib/isolar.ts` is the iSolarCloud integration — read the comments at the top of this file before touching it. Key points:
