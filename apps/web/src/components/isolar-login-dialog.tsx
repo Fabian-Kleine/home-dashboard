@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useIsolar } from "@/components/isolar-context";
+import { useTranslation } from "@/lib/use-translation";
 
 export function IsolarLoginDialog() {
   const {
@@ -22,6 +23,7 @@ export function IsolarLoginDialog() {
     loginError,
     clearLoginError,
   } = useIsolar();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -51,9 +53,9 @@ export function IsolarLoginDialog() {
               <img src="/isolarcloud.png" alt="iSolarCloud logo" className="size-full object-contain" />
             </div>
             <DialogHeader className="gap-0">
-              <DialogTitle>Connect Sungrow account</DialogTitle>
+              <DialogTitle>{t.sungrow.connect}</DialogTitle>
               <DialogDescription>
-                Sign in with your iSolarCloud credentials to enable live solar data.
+                {t.isolarLogin.description}
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -61,7 +63,7 @@ export function IsolarLoginDialog() {
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="isolar-email" className="text-xs font-bold text-slate-300">
-                Email
+                {t.isolarLogin.email}
               </label>
               <Input
                 id="isolar-email"
@@ -77,7 +79,7 @@ export function IsolarLoginDialog() {
             </div>
             <div className="flex flex-col gap-1.5">
               <label htmlFor="isolar-password" className="text-xs font-bold text-slate-300">
-                Password
+                {t.isolarLogin.password}
               </label>
               <Input
                 id="isolar-password"
@@ -99,7 +101,7 @@ export function IsolarLoginDialog() {
           <DialogFooter>
             <Button type="submit" disabled={isLoggingIn}>
               {isLoggingIn && <IconLoader2 className="size-3.5 animate-spin" />}
-              {isLoggingIn ? "Connecting" : "Connect"}
+              {isLoggingIn ? t.isolarLogin.connecting : t.isolarLogin.connect}
             </Button>
           </DialogFooter>
         </form>

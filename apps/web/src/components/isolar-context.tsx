@@ -10,6 +10,8 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_ROUTES, type IsolarSolarData, type IsolarStatusResponse } from "@repo/shared";
 
+import { useTranslation } from "@/lib/use-translation";
+
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:4000";
 const ISOLAR_STATUS_QUERY_KEY = ["isolar-status"];
 const ISOLAR_SOLAR_DATA_QUERY_KEY = ["isolar-solar-data"];
@@ -63,6 +65,7 @@ async function fetchIsolarSolarData(signal?: AbortSignal): Promise<IsolarSolarDa
 
 export function IsolarProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -116,7 +119,7 @@ export function IsolarProvider({ children }: { children: ReactNode }) {
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to log in to iSolarCloud.");
+        throw new Error(payload.error ?? t.isolarLogin.fallbackError);
       }
     },
     onSuccess: () => {

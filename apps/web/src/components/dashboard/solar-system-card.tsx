@@ -6,6 +6,7 @@ import { GlassCard } from "@/components/dashboard/glass-card";
 import { IsolarEmptyState } from "@/components/dashboard/isolar-empty-state";
 import { SolarDataLoadingState } from "@/components/dashboard/solar-data-loading-state";
 import { CircularProgress } from "@/components/ui/progress";
+import { useTranslation } from "@/lib/use-translation";
 
 export function SolarSystemCard({
   isSungrowConnected,
@@ -16,14 +17,15 @@ export function SolarSystemCard({
   solarData: IsolarSolarData | undefined;
   displayData: DashboardData;
 }) {
+  const { t } = useTranslation();
   const gridExporting = displayData.grid.current >= 0;
 
   return (
     <GlassCard className="col-span-12 flex flex-col gap-4 p-6 lg:col-span-5">
       <div className="flex items-center justify-between">
-        <div className="text-lg font-semibold">Solar system</div>
+        <div className="text-lg font-semibold">{t.solarSystem.title}</div>
         <Link to="/solar" className="group flex items-center gap-1 text-[13px] font-extrabold text-[#0f8b7f] no-underline dark:text-teal-300">
-          Details
+          {t.solarSystem.details}
           <IconArrowRight className='size-4 transition-transform group-hover:translate-x-1' />
         </Link>
       </div>
@@ -41,16 +43,16 @@ export function SolarSystemCard({
                   progressClassName="stroke-[#16a99a]"
                   labelClassName="text-lg font-semibold text-[#0f7d74] dark:text-teal-300"
                 />
-                <div className="text-xs font-extrabold text-[#17323a]/50 dark:text-slate-300/60">BATTERY</div>
+                <div className="text-xs font-extrabold text-[#17323a]/50 dark:text-slate-300/60">{t.solarSystem.battery}</div>
               </div>
               <div className="flex flex-1 flex-col gap-3.5">
                 <div>
-                  <div className="text-[11.5px] font-extrabold text-[#17323a]/50 dark:text-slate-300/60">CURRENT USAGE</div>
+                  <div className="text-[11.5px] font-extrabold text-[#17323a]/50 dark:text-slate-300/60">{t.solarSystem.currentUsage}</div>
                   <div className="mt-0.5 text-2xl font-semibold">{displayData.consumption.current.toFixed(1)} {displayData.consumption.unit}</div>
                 </div>
                 <div>
                   <div className="text-[11.5px] font-extrabold text-[#17323a]/50 dark:text-slate-300/60">
-                    {gridExporting ? "GRID EXPORT" : "GRID IMPORT"}
+                    {gridExporting ? t.solarSystem.gridExport : t.solarSystem.gridImport}
                   </div>
                   <div className="mt-0.5 text-2xl font-semibold" style={{ color: gridExporting ? "#12a05f" : "#e8794b" }}>
                     {gridExporting ? "+" : "-"}
@@ -60,7 +62,7 @@ export function SolarSystemCard({
               </div>
             </div>
             <div className="flex justify-between border-t border-[#17323a]/10 pt-3.5 text-[11.5px] font-extrabold text-[#17323a]/50 dark:border-white/10 dark:text-slate-300/60">
-              <span>SOLAR GENERATED</span>
+              <span>{t.solarSystem.solarGenerated}</span>
               <span className="text-[#0f8b7f] dark:text-teal-300">{displayData.solar.current.toFixed(1)} {displayData.solar.unit}</span>
             </div>
             {solarData.pvStrings.length > 0 && (
@@ -88,7 +90,7 @@ export function SolarSystemCard({
           <SolarDataLoadingState />
         )
       ) : (
-        <IsolarEmptyState message="Connect your Sungrow account to see battery, grid, and solar data" />
+        <IsolarEmptyState message={t.solarSystem.emptyState} />
       )}
     </GlassCard>
   );

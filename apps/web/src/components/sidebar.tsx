@@ -2,6 +2,7 @@ import { Link, useLocation, type LinkOptions } from "@tanstack/react-router";
 import { IconChevronLeft, IconMenu2 } from "@tabler/icons-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/use-translation";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useFullscreen } from "./fullscreen-context";
@@ -12,16 +13,17 @@ interface NavLink {
     exact?: boolean;
 }
 
-const NAV_LINKS: NavLink[] = [
-    { to: "/", label: "Home", exact: true },
-    { to: "/weather", label: "Weather" },
-    { to: "/solar", label: "Solar" },
-];
-
 export function Sidebar() {
     const [isOpen, setIsOpen] = useState(false);
     const { isFullscreen } = useFullscreen();
     const { pathname } = useLocation();
+    const { t } = useTranslation();
+
+    const NAV_LINKS: NavLink[] = [
+        { to: "/", label: t.sidebar.navHome, exact: true },
+        { to: "/weather", label: t.sidebar.navWeather },
+        { to: "/solar", label: t.sidebar.navSolar },
+    ];
 
     return (
         <>
@@ -40,7 +42,7 @@ export function Sidebar() {
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>Toggle menu</p>
+                    <p>{t.sidebar.toggleMenu}</p>
                 </TooltipContent>
             </Tooltip>
 
@@ -69,7 +71,7 @@ export function Sidebar() {
                 </div>
 
                 <div className="px-2.5 pb-2 text-[11px] font-extrabold tracking-[0.08em] text-[#17323a]/45 dark:text-slate-300/50">
-                    DASHBOARDS
+                    {t.sidebar.dashboards.toUpperCase()}
                 </div>
 
                 <nav className="flex flex-col gap-1.5">

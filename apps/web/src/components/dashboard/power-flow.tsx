@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
 import type { DashboardData } from "@repo/shared";
 
+import { useTranslation } from "@/lib/use-translation";
+
 /**
  * Live power-flow widget — "P1 · Illustrated nodes" from the design system.
  * A compact row of illustrated solar / battery / home / grid nodes joined by
@@ -9,6 +11,7 @@ import type { DashboardData } from "@repo/shared";
  * Relies on the `flowdot` keyframes declared globally in `index.css`.
  */
 export function PowerFlow({ data }: { data: DashboardData }) {
+  const { t } = useTranslation();
   const fmt = (v: number) => Math.abs(v).toFixed(1);
   const isSolarActive = data.solar.current > 0;
   const isBatteryActive = data.battery.level > 0;
@@ -27,7 +30,7 @@ export function PowerFlow({ data }: { data: DashboardData }) {
       }}
     >
       {/* Solar */}
-      <Node label="SOLAR" value={fmt(data.solar.current)} unit="kW">
+      <Node label={t.powerFlow.solar} value={fmt(data.solar.current)} unit="kW">
         <div style={{ position: "relative", height: 60, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
           <div
             style={{
@@ -65,7 +68,7 @@ export function PowerFlow({ data }: { data: DashboardData }) {
       <FlowLine color="#f5b62c" delays={[0, 0.63, 1.26]} active={isSolarActive} />
 
       {/* Battery */}
-      <Node label="BATTERY" value={String(data.battery.level)} unit="%">
+      <Node label={t.powerFlow.battery} value={String(data.battery.level)} unit="%">
         <div style={{ height: 60, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ position: "relative", width: 54, height: 30, border: "3px solid var(--flow-ink)", borderRadius: 7, padding: 3 }}>
             <div style={{ position: "absolute", right: -7, top: 8, width: 5, height: 12, background: "var(--flow-ink)", borderRadius: "0 3px 3px 0" }} />
@@ -84,7 +87,7 @@ export function PowerFlow({ data }: { data: DashboardData }) {
       <FlowLine color="#16a99a" delays={[0.3, 0.93, 1.56]} active={isBatteryActive} />
 
       {/* Home */}
-      <Node label="HOME" value={fmt(data.consumption.current)} unit="kW">
+      <Node label={t.powerFlow.home} value={fmt(data.consumption.current)} unit="kW">
         <div style={{ position: "relative", height: 60, width: 66, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end" }}>
           <div style={{ position: "absolute", top: 3, right: 13, width: 7, height: 15, background: "#0f8b7f", borderRadius: "2px 2px 0 0" }} />
           <div style={{ width: 62, height: 26, background: "#16a99a", clipPath: "polygon(50% 0,100% 100%,0 100%)" }} />
@@ -112,7 +115,7 @@ export function PowerFlow({ data }: { data: DashboardData }) {
       <FlowLine color="#1fb36a" delays={[0.15, 0.78, 1.41]} active={isGridActive} reverse={isGridImporting} />
 
       {/* Grid */}
-      <Node label="GRID" value={`${data.grid.current > 0 ? "+" : data.grid.current < 0 ? "-" : ""}${fmt(data.grid.current)}`} unit="kW">
+      <Node label={t.powerFlow.grid} value={`${data.grid.current > 0 ? "+" : data.grid.current < 0 ? "-" : ""}${fmt(data.grid.current)}`} unit="kW">
         <div style={{ height: 60, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
           <svg width={58} height={60} viewBox="0 0 56 60">
             <g stroke="var(--flow-grid-stroke)" strokeWidth={2.2} strokeLinecap="round" fill="none">

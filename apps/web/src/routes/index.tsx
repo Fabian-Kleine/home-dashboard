@@ -48,6 +48,8 @@ import { useIsolar } from "@/components/isolar-context";
 import { useRegisterPageRefresh } from "@/components/page-refresh-context";
 import { useSettings, type Language, type ThemeMode } from "@/components/settings-context";
 import { getMockDashboard } from "@/lib/mock-data";
+import { useTranslation } from "@/lib/use-translation";
+import type { TranslationDict } from "@/lib/translations";
 import { WeatherHeroCard } from "@/components/dashboard/weather-hero-card";
 import { ProductionStatusCard } from "@/components/dashboard/production-status-card";
 import { WeatherNowCard } from "@/components/dashboard/weather-now-card";
@@ -84,10 +86,10 @@ async function fetchWeather(location: WeatherRequestParams, signal?: AbortSignal
   return (payload as WeatherData).current;
 }
 
-function greetingForHour(hour: number) {
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+function greetingForHour(hour: number, greeting: TranslationDict["greeting"]) {
+  if (hour < 12) return greeting.morning;
+  if (hour < 18) return greeting.afternoon;
+  return greeting.evening;
 }
 
 /** No direct "status" field exists on iSolarCloud's real-time data, so derive one from how much of current load solar is covering. */
@@ -99,13 +101,16 @@ function deriveProductionStatus(solarKw: number, loadKw: number): ProductionStat
   return PRODUCTION_STATUS.reduced;
 }
 
+type ConnectionAlertKind = "error" | "retrying" | null;
+
 function HomePage() {
   const [data, setData] = useState<DashboardData>(getMockDashboard);
   const [location, setLocation] = useState<WeatherRequestParams>(DEFAULT_LOCATION);
-  const [connectionAlert, setConnectionAlert] = useState<string | null>(null);
+  const [connectionAlert, setConnectionAlert] = useState<ConnectionAlertKind>(null);
   const { isFullscreen, isSupported, toggleFullscreen, container } = useFullscreen();
   const { theme, setTheme, language, setLanguage } = useSettings();
   const { isLoggedIn: isSungrowConnected, openLoginDialog, logout: disconnectSungrow, solarData, refetchSolarData } = useIsolar();
+  const { t, locale } = useTranslation();
 
   const weatherQuery = useQuery({
     queryKey: ["weather", location.latitude, location.longitude, location.timezone],
@@ -129,7 +134,7 @@ function HomePage() {
     onRefresh: handlePageRefresh,
     isRefreshing: weatherQuery.isFetching,
     disabled: weatherQuery.isFetching,
-    label: weatherQuery.isFetching ? "Refreshing data" : "Refresh data",
+    label: weatherQuery.isFetching ? t.header.refreshingData : t.header.refreshData,
   });
 
   useEffect(() => {
@@ -145,7 +150,7 @@ function HomePage() {
 
   useEffect(() => {
     if (!weatherQuery.isError) return;
-    setConnectionAlert("The backend weather API is unavailable.");
+    setConnectionAlert("error");
   }, [weatherQuery.isError]);
 
   useEffect(() => {
@@ -165,7 +170,7 @@ function HomePage() {
   }, []);
 
   const handleReconnect = () => {
-    setConnectionAlert("Attempting to reach the weather API...");
+    setConnectionAlert("retrying");
     void weatherQuery.refetch();
   };
 
@@ -194,11 +199,11 @@ function HomePage() {
       <div className="min-h-screen w-full px-5 py-6 sm:px-8 lg:px-10">
         <header className="mb-5 flex items-center justify-between gap-4 px-1">
           <div className="min-w-0">
-            <div className="truncate text-2xl font-semibold tracking-tight">{greetingForHour(now.getHours())}</div>
+            <div className="truncate text-2xl font-semibold tracking-tight">{greetingForHour(now.getHours(), t.greeting)}</div>
             <div className="mt-0.5 text-[13.5px] font-bold text-[#17323a]/60 dark:text-slate-300/70">
-              {now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+              {now.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" })}
               {" · "}
-              {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -206,7 +211,7 @@ function HomePage() {
               type="button"
               onClick={handlePageRefresh}
               disabled={weatherQuery.isFetching}
-              aria-label={weatherQuery.isFetching ? "Refreshing data" : "Refresh data"}
+              aria-label={weatherQuery.isFetching ? t.header.refreshingData : t.header.refreshData}
               className="flex size-10 items-center justify-center rounded-2xl border border-white/40 bg-white/25 text-[#17323a]/55 backdrop-blur-md transition-colors hover:bg-white/45 hover:text-[#0f7d74] disabled:opacity-60 dark:border-white/10 dark:bg-white/10 dark:text-slate-300/70 dark:hover:bg-white/15 dark:hover:text-teal-300"
             >
               <IconRefresh className={cn("size-4.5", weatherQuery.isFetching && "animate-spin")} />
@@ -215,7 +220,7 @@ function HomePage() {
               <button
                 type="button"
                 onClick={() => void toggleFullscreen()}
-                aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                aria-label={isFullscreen ? t.header.exitFullscreen : t.header.enterFullscreen}
                 className="flex size-10 items-center justify-center rounded-2xl border border-white/40 bg-white/25 text-[#17323a]/55 backdrop-blur-md transition-colors hover:bg-white/45 hover:text-[#0f7d74] dark:border-white/10 dark:bg-white/10 dark:text-slate-300/70 dark:hover:bg-white/15 dark:hover:text-teal-300"
               >
                 {isFullscreen ? <IconArrowsDiagonalMinimize2 className="size-4.5" /> : <IconArrowsDiagonal className="size-4.5" />}
@@ -225,7 +230,7 @@ function HomePage() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  aria-label="More options"
+                  aria-label={t.header.moreOptions}
                   className="flex size-10 items-center justify-center rounded-2xl border border-white/40 bg-white/25 text-[#17323a]/55 backdrop-blur-md transition-colors hover:bg-white/45 hover:text-[#0f7d74] aria-expanded:bg-white/45 aria-expanded:text-[#0f7d74] dark:border-white/10 dark:bg-white/10 dark:text-slate-300/70 dark:hover:bg-white/15 dark:hover:text-teal-300 dark:aria-expanded:bg-white/15 dark:aria-expanded:text-teal-300"
                 >
                   <IconDotsVertical className="size-4.5" />
@@ -234,19 +239,19 @@ function HomePage() {
               <DropdownMenuContent align="end" container={container ?? undefined}>
                 <DropdownMenuItem onSelect={handlePageRefresh} disabled={weatherQuery.isFetching}>
                   <IconRefresh className={cn(weatherQuery.isFetching && "animate-spin")} />
-                  {weatherQuery.isFetching ? "Refreshing data" : "Refresh data"}
+                  {weatherQuery.isFetching ? t.header.refreshingData : t.header.refreshData}
                 </DropdownMenuItem>
                 {isSupported && (
                   <DropdownMenuItem onSelect={() => void toggleFullscreen()}>
                     {isFullscreen ? <IconArrowsDiagonalMinimize2 /> : <IconArrowsDiagonal />}
-                    {isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                    {isFullscreen ? t.header.exitFullscreen : t.header.enterFullscreen}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
                     <IconLanguage />
-                    Language
+                    {t.header.language}
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     <DropdownMenuRadioGroup
@@ -255,23 +260,24 @@ function HomePage() {
                     >
                       <DropdownMenuRadioItem value="de">Deutsch</DropdownMenuRadioItem>
                       <DropdownMenuRadioItem value="en">English</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="nl">Nederlands</DropdownMenuRadioItem>
                     </DropdownMenuRadioGroup>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
                     <IconPalette />
-                    Theme
+                    {t.header.theme}
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     <DropdownMenuRadioGroup
                       value={theme}
                       onValueChange={(value) => setTheme(value as ThemeMode)}
                     >
-                      <DropdownMenuRadioItem value="auto">Auto</DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="auto">{t.theme.auto}</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="system">{t.theme.system}</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="light">{t.theme.light}</DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="dark">{t.theme.dark}</DropdownMenuRadioItem>
                     </DropdownMenuRadioGroup>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
@@ -280,7 +286,7 @@ function HomePage() {
                   onSelect={() => (isSungrowConnected ? disconnectSungrow() : openLoginDialog())}
                 >
                   {isSungrowConnected ? <IconLogout /> : <IconPlugConnected />}
-                  {isSungrowConnected ? "Log out from Sungrow" : "Connect Sungrow account"}
+                  {isSungrowConnected ? t.sungrow.logout : t.sungrow.connect}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -321,8 +327,10 @@ function HomePage() {
               <IconAlertTriangle className="size-5" />
             </div>
             <AlertDialogHeader>
-              <AlertDialogTitle>Live connection unavailable</AlertDialogTitle>
-              <AlertDialogDescription>{connectionAlert}</AlertDialogDescription>
+              <AlertDialogTitle>{t.alert.title}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {connectionAlert === "retrying" ? t.alert.retryingWeather : t.alert.weatherUnavailable}
+              </AlertDialogDescription>
             </AlertDialogHeader>
           </div>
           <AlertDialogFooter>
@@ -334,7 +342,7 @@ function HomePage() {
               disabled={isRetrying}
             >
               <IconRefresh className={`size-3.5 ${isRetrying ? "animate-spin" : ""}`} />
-              {isRetrying ? "Retrying" : "Try again"}
+              {isRetrying ? t.alert.retrying : t.alert.tryAgain}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -8,8 +8,10 @@ import {
   type ReactNode,
 } from "react";
 
+import { getCookie, setCookie } from "@/lib/cookies";
+
 export type ThemeMode = "auto" | "system" | "light" | "dark";
-export type Language = "en" | "de";
+export type Language = "en" | "de" | "nl";
 
 type SettingsContextValue = {
   theme: ThemeMode;
@@ -20,8 +22,14 @@ type SettingsContextValue = {
 
 const THEME_STORAGE_KEY = "aurora.theme";
 const LANGUAGE_STORAGE_KEY = "aurora.language";
+const LANGUAGE_COOKIE = "aurora_language";
+const LANGUAGE_COOKIE_MAX_AGE_DAYS = 365;
 const NIGHT_START_HOUR = 19;
 const DAY_START_HOUR = 7;
+
+function isLanguage(value: string | null): value is Language {
+  return value === "en" || value === "de" || value === "nl";
+}
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
@@ -43,8 +51,14 @@ function readStoredTheme(): ThemeMode {
 }
 
 function readStoredLanguage(): Language {
-  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  return stored === "en" || stored === "de" ? stored : "en";
+  const cookieValue = getCookie(LANGUAGE_COOKIE);
+  if (isLanguage(cookieValue)) return cookieValue;
+
+  // Fall back to the legacy localStorage-only value for users who set a language before the cookie migration.
+  const legacyValue = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  if (isLanguage(legacyValue)) return legacyValue;
+
+  return "en";
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -58,7 +72,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const setLanguage = useCallback((next: Language) => {
     setLanguageState(next);
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, next);
+    setCookie(LANGUAGE_COOKIE, next, LANGUAGE_COOKIE_MAX_AGE_DAYS);
+    localStorage.removeItem(LANGUAGE_STORAGE_KEY);
   }, []);
 
   useEffect(() => {

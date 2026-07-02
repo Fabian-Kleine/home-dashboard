@@ -3,11 +3,12 @@ import { PRODUCTION_STATUS, type IsolarSolarData, type ProductionStatus } from "
 import { GlassCard } from "@/components/dashboard/glass-card";
 import { IsolarEmptyState } from "@/components/dashboard/isolar-empty-state";
 import { SolarDataLoadingState } from "@/components/dashboard/solar-data-loading-state";
+import { useTranslation } from "@/lib/use-translation";
 
-const PRODUCTION_CONFIG: Record<ProductionStatus, { label: string; color: string; segments: number }> = {
-  good: { label: "Good", color: "#12a05f", segments: 3 },
-  average: { label: "Average", color: "#e79a17", segments: 2 },
-  reduced: { label: "Reduced", color: "#e8794b", segments: 1 },
+const PRODUCTION_VISUALS: Record<ProductionStatus, { color: string; segments: number }> = {
+  good: { color: "#12a05f", segments: 3 },
+  average: { color: "#e79a17", segments: 2 },
+  reduced: { color: "#e8794b", segments: 1 },
 };
 
 export function ProductionStatusCard({
@@ -21,11 +22,12 @@ export function ProductionStatusCard({
   productionStatus: ProductionStatus;
   kwhToday: number;
 }) {
-  const production = PRODUCTION_CONFIG[productionStatus];
+  const { t } = useTranslation();
+  const production = { ...PRODUCTION_VISUALS[productionStatus], label: t.productionStatus[productionStatus] };
 
   return (
     <GlassCard className="col-span-12 flex flex-col justify-between gap-4 p-6 lg:col-span-5">
-      <div className="text-lg font-semibold">Production Status</div>
+      <div className="text-lg font-semibold">{t.productionStatus.title}</div>
       {isSungrowConnected ? (
         solarData ? (
           <>
@@ -34,7 +36,7 @@ export function ProductionStatusCard({
                 {production.label}
               </div>
               <div className="mt-1.5 text-[13.5px] font-bold text-[#17323a]/55 dark:text-slate-300/65">
-                {kwhToday.toFixed(1)} kWh generated today
+                {t.productionStatus.kwhToday(kwhToday.toFixed(1))}
               </div>
             </div>
             <div>
@@ -52,19 +54,19 @@ export function ProductionStatusCard({
                   className="flex-1 text-left"
                   style={productionStatus === PRODUCTION_STATUS.reduced ? { color: production.color } : undefined}
                 >
-                  Reduced
+                  {t.productionStatus.reduced}
                 </span>
                 <span
                   className="flex-1 text-center"
                   style={productionStatus === PRODUCTION_STATUS.average ? { color: production.color } : undefined}
                 >
-                  Average
+                  {t.productionStatus.average}
                 </span>
                 <span
                   className="flex-1 text-right"
                   style={productionStatus === PRODUCTION_STATUS.good ? { color: production.color } : undefined}
                 >
-                  Good
+                  {t.productionStatus.good}
                 </span>
               </div>
             </div>
@@ -73,7 +75,7 @@ export function ProductionStatusCard({
           <SolarDataLoadingState />
         )
       ) : (
-        <IsolarEmptyState message="Connect your Sungrow account to see production status" />
+        <IsolarEmptyState message={t.productionStatus.emptyState} />
       )}
     </GlassCard>
   );
