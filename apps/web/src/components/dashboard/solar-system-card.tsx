@@ -41,7 +41,7 @@ export function SolarSystemCard({
                   renderLabel={(value) => `${value}%`}
                   className="stroke-[#17323a]/10 dark:stroke-white/10"
                   progressClassName="stroke-[#16a99a]"
-                  labelClassName="text-lg font-semibold text-[#0f7d74] dark:text-teal-300"
+                  labelClassName="font-semibold text-[#0f7d74] dark:text-teal-300"
                 />
                 <div className="text-xs font-extrabold text-[#17323a]/50 dark:text-slate-300/60">{t.solarSystem.battery}</div>
               </div>

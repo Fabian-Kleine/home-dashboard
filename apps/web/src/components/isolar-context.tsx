@@ -82,7 +82,6 @@ export function IsolarProvider({ children }: { children: ReactNode }) {
     queryKey: ISOLAR_SOLAR_DATA_QUERY_KEY,
     queryFn: ({ signal }) => fetchIsolarSolarData(signal),
     enabled: isLoggedIn,
-    refetchInterval: SOLAR_DATA_REFRESH_INTERVAL_MS,
     refetchOnWindowFocus: false,
     retry: 1,
     staleTime: SOLAR_DATA_REFRESH_INTERVAL_MS - 1_000,

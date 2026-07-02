@@ -1,7 +1,10 @@
 import type { CurrentWeatherData } from "@repo/shared";
 
 import { GlassCard } from "@/components/dashboard/glass-card";
+import { WeatherEmptyState } from "@/components/dashboard/weather-empty-state";
 import { WeatherIcon } from "@/components/dashboard/weather-icon";
+import { WeatherLoadingState } from "@/components/dashboard/weather-loading-state";
+import { WeatherOutdatedBadge } from "@/components/dashboard/weather-outdated-badge";
 import { useTranslation } from "@/lib/use-translation";
 import type { TranslationDict } from "@/lib/translations";
 
@@ -17,17 +20,38 @@ function describeWeather(weatherCode: number, t: TranslationDict["weatherHero"])
   return t.currentConditions;
 }
 
-export function WeatherHeroCard({ weather }: { weather: CurrentWeatherData }) {
+export function WeatherHeroCard({
+  weather,
+  isLoading,
+  isOutdated,
+  isRetrying,
+  onRetry,
+}: {
+  weather: CurrentWeatherData | undefined;
+  isLoading: boolean;
+  isOutdated: boolean;
+  isRetrying: boolean;
+  onRetry: () => void;
+}) {
   const { t } = useTranslation();
+
+  if (!weather) {
+    return (
+      <GlassCard className="col-span-12 flex min-h-52 flex-col justify-between overflow-hidden p-7 lg:col-span-7">
+        {isLoading ? <WeatherLoadingState /> : <WeatherEmptyState onRetry={onRetry} isRetrying={isRetrying} />}
+      </GlassCard>
+    );
+  }
 
   return (
     <GlassCard className="relative col-span-12 flex min-h-52 flex-col justify-between overflow-hidden p-7 lg:col-span-7">
       <WeatherIcon iconName={weather.weatherIcon} className="pointer-events-none absolute right-10 top-5 size-36 opacity-95" />
-      <div className="relative top-4">
+      <div className="relative top-4 flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-2 rounded-full bg-white/55 px-3 py-1.5 text-[13px] font-extrabold text-[#0f7d74] dark:bg-white/10 dark:text-teal-300">
           <span className="size-2 rounded-full bg-[#16a99a]" />
           {describeWeather(weather.weatherCode, t.weatherHero)}
         </span>
+        {isOutdated && <WeatherOutdatedBadge />}
       </div>
       <div className="relative">
         <div className="text-[86px] font-medium leading-[.9]">{Math.round(weather.temperature)}°</div>

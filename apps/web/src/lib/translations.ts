@@ -24,13 +24,6 @@ export const en = {
     connect: "Connect Sungrow account",
     logout: "Log out from Sungrow",
   },
-  alert: {
-    title: "Live connection unavailable",
-    weatherUnavailable: "The backend weather API is unavailable.",
-    retryingWeather: "Attempting to reach the weather API...",
-    retrying: "Retrying",
-    tryAgain: "Try again",
-  },
   sidebar: {
     toggleMenu: "Toggle menu",
     dashboards: "Dashboards",
@@ -110,6 +103,17 @@ export const en = {
   isolarLoading: {
     message: "Loading solar data…",
   },
+  weatherEmptyState: {
+    message: "No weather data available",
+    retry: "Retry",
+    retrying: "Retrying",
+  },
+  weatherLoading: {
+    message: "Loading weather…",
+  },
+  weatherOutdatedBadge: {
+    label: "Outdated",
+  },
 };
 
 export const de: typeof en = {
@@ -137,13 +141,6 @@ export const de: typeof en = {
   sungrow: {
     connect: "Sungrow-Konto verbinden",
     logout: "Von Sungrow abmelden",
-  },
-  alert: {
-    title: "Live-Verbindung nicht verfügbar",
-    weatherUnavailable: "Die Wetter-API des Backends ist nicht verfügbar.",
-    retryingWeather: "Versuche, die Wetter-API zu erreichen …",
-    retrying: "Wird wiederholt",
-    tryAgain: "Erneut versuchen",
   },
   sidebar: {
     toggleMenu: "Menü umschalten",
@@ -224,6 +221,17 @@ export const de: typeof en = {
   isolarLoading: {
     message: "Solardaten werden geladen…",
   },
+  weatherEmptyState: {
+    message: "Keine Wetterdaten verfügbar",
+    retry: "Erneut versuchen",
+    retrying: "Wird wiederholt",
+  },
+  weatherLoading: {
+    message: "Wetter wird geladen…",
+  },
+  weatherOutdatedBadge: {
+    label: "Veraltet",
+  },
 };
 
 export const nl: typeof en = {
@@ -251,13 +259,6 @@ export const nl: typeof en = {
   sungrow: {
     connect: "Sungrow-account koppelen",
     logout: "Afmelden bij Sungrow",
-  },
-  alert: {
-    title: "Live-verbinding niet beschikbaar",
-    weatherUnavailable: "De weer-API van de backend is niet beschikbaar.",
-    retryingWeather: "Bezig met verbinden met de weer-API…",
-    retrying: "Opnieuw proberen",
-    tryAgain: "Probeer opnieuw",
   },
   sidebar: {
     toggleMenu: "Menu wisselen",
@@ -337,6 +338,17 @@ export const nl: typeof en = {
   },
   isolarLoading: {
     message: "Zonnegegevens laden…",
+  },
+  weatherEmptyState: {
+    message: "Geen weergegevens beschikbaar",
+    retry: "Opnieuw proberen",
+    retrying: "Opnieuw proberen",
+  },
+  weatherLoading: {
+    message: "Weer wordt geladen…",
+  },
+  weatherOutdatedBadge: {
+    label: "Verouderd",
   },
 };
 

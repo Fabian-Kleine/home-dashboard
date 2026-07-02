@@ -12,6 +12,9 @@ import {
 import type { CurrentWeatherData } from "@repo/shared";
 
 import { GlassCard } from "@/components/dashboard/glass-card";
+import { WeatherEmptyState } from "@/components/dashboard/weather-empty-state";
+import { WeatherLoadingState } from "@/components/dashboard/weather-loading-state";
+import { WeatherOutdatedBadge } from "@/components/dashboard/weather-outdated-badge";
 import { useTranslation } from "@/lib/use-translation";
 
 function formatTime(value: string) {
@@ -19,8 +22,29 @@ function formatTime(value: string) {
   return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WeatherNowCard({ weather }: { weather: CurrentWeatherData }) {
+export function WeatherNowCard({
+  weather,
+  isLoading,
+  isOutdated,
+  isRetrying,
+  onRetry,
+}: {
+  weather: CurrentWeatherData | undefined;
+  isLoading: boolean;
+  isOutdated: boolean;
+  isRetrying: boolean;
+  onRetry: () => void;
+}) {
   const { t } = useTranslation();
+
+  if (!weather) {
+    return (
+      <GlassCard className="col-span-12 flex min-h-52 flex-col p-6 lg:col-span-7">
+        <div className="mb-4 text-lg font-semibold">{t.weatherNow.title}</div>
+        {isLoading ? <WeatherLoadingState /> : <WeatherEmptyState onRetry={onRetry} isRetrying={isRetrying} />}
+      </GlassCard>
+    );
+  }
 
   const metrics: { key: string; label: string; value: string; unit?: string; color: string; icon: TablerIcon }[] = [
     { key: "cloud", label: t.weatherNow.cloud, value: String(weather.cloudCover), unit: "%", color: "#2e8fe6", icon: IconCloud },
@@ -33,8 +57,11 @@ export function WeatherNowCard({ weather }: { weather: CurrentWeatherData }) {
 
   return (
     <GlassCard className="col-span-12 p-6 lg:col-span-7">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="text-lg font-semibold">{t.weatherNow.title}</div>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="text-lg font-semibold">{t.weatherNow.title}</div>
+          {isOutdated && <WeatherOutdatedBadge />}
+        </div>
         <Link to="/weather" className="group flex items-center gap-1 text-[13px] font-extrabold text-[#0f8b7f] no-underline dark:text-teal-300">
           {t.weatherNow.details}
           <IconArrowRight className='size-4 transition-transform group-hover:translate-x-1' />
