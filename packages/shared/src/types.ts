@@ -90,3 +90,15 @@ export type DashboardData = {
   summary: string;
   lastUpdated: string;
 };
+
+export type AiOverviewRequest = {
+  weather: CurrentWeatherData;
+  productionStatus: ProductionStatus;
+  isSungrowConnected: boolean;
+  solar?: IsolarSolarData;
+  language: string;
+};
+
+export type AiOverviewResponse = {
+  summary: string;
+};

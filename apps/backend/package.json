@@ -16,6 +16,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^5.1.0",
+    "ollama": "^0.6.3",
     "openmeteo": "^1.2.3"
   },
   "devDependencies": {

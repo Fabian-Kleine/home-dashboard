@@ -99,6 +99,8 @@ export const en = {
   },
   outlook: {
     title: "Today's outlook",
+    loading: "Generating today's outlook…",
+    error: "Unable to generate today's outlook right now.",
   },
   isolarEmptyState: {
     defaultMessage: "Connect your Sungrow account to see live solar data",
@@ -221,6 +223,8 @@ export const de: typeof en = {
   },
   outlook: {
     title: "Heutiger Ausblick",
+    loading: "Heutiger Ausblick wird erstellt…",
+    error: "Der heutige Ausblick kann gerade nicht erstellt werden.",
   },
   isolarEmptyState: {
     defaultMessage: "Verbinde dein Sungrow-Konto, um Live-Solardaten zu sehen",
@@ -343,6 +347,8 @@ export const nl: typeof en = {
   },
   outlook: {
     title: "Vooruitblik van vandaag",
+    loading: "Vooruitblik van vandaag wordt gegenereerd…",
+    error: "Kan de vooruitblik van vandaag nu niet genereren.",
   },
   isolarEmptyState: {
     defaultMessage: "Koppel je Sungrow-account om live zonnedata te zien",

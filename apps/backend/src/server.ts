@@ -8,6 +8,7 @@ import {
   type HealthResponse,
 } from "@repo/shared";
 import { getWeatherData } from "./lib/weather.js";
+import aiRoute from "./routes/ai.route.js";
 import isolarRoute from "./routes/isolar.route.js";
 import weatherRoute from "./routes/weather.route.js";
 
@@ -35,6 +36,7 @@ app.get(API_ROUTES.health, (_request, response) => {
 
 app.use(weatherRoute);
 app.use(isolarRoute);
+app.use(aiRoute);
 
 const port = Number(process.env.PORT ?? 4000);
 

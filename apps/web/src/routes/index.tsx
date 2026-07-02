@@ -16,6 +16,7 @@ import { PowerFlowCard } from "@/components/dashboard/power-flow-card";
 import { OutlookCard } from "@/components/dashboard/outlook-card";
 import { fetchWeather, useWeatherLocation } from "@/lib/weather";
 import { buildDisplayData, computeKwhToday, FALLBACK_DASHBOARD_DATA } from "@/lib/solar";
+import { useAiOverview } from "@/lib/ai-overview";
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -39,12 +40,28 @@ function HomePage() {
     staleTime: REFRESH_INTERVAL_MS - 1_000,
   });
 
+  const now = new Date();
+  const weather = weatherQuery.data;
+  const isWeatherOutdated = weatherQuery.isError && weather !== undefined;
+
+  const displayData: DashboardData = buildDisplayData(data, isSungrowConnected, solarData);
+  const kwhToday = computeKwhToday(data, isSungrowConnected, solarData);
+
+  const aiOverviewQuery = useAiOverview({
+    weather,
+    productionStatus: displayData.productionStatus,
+    isSungrowConnected,
+    solarData,
+    staleTimeMs: REFRESH_INTERVAL_MS - 1_000,
+  });
+
   const handlePageRefresh = useCallback(() => {
     void weatherQuery.refetch();
     if (isSungrowConnected) {
       void refetchSolarData();
     }
-  }, [weatherQuery.refetch, isSungrowConnected, refetchSolarData]);
+    void aiOverviewQuery.refetch();
+  }, [weatherQuery.refetch, isSungrowConnected, refetchSolarData, aiOverviewQuery.refetch]);
 
   useRegisterPageRefresh({
     onRefresh: handlePageRefresh,
@@ -58,12 +75,7 @@ function HomePage() {
     return () => clearInterval(id);
   }, [handlePageRefresh]);
 
-  const now = new Date();
-  const weather = weatherQuery.data;
-  const isWeatherOutdated = weatherQuery.isError && weather !== undefined;
-
-  const displayData: DashboardData = buildDisplayData(data, isSungrowConnected, solarData);
-  const kwhToday = computeKwhToday(data, isSungrowConnected, solarData);
+  const outlookSummary = aiOverviewQuery.data ?? (aiOverviewQuery.isError ? t.outlook.error : t.outlook.loading);
 
   return (
     <div className="min-h-screen w-full px-5 py-6 sm:px-8 lg:px-10">
@@ -106,7 +118,7 @@ function HomePage() {
 
         <PowerFlowCard isSungrowConnected={isSungrowConnected} solarData={solarData} displayData={displayData} />
 
-        <OutlookCard summary={data.summary} />
+        <OutlookCard summary={outlookSummary} isLoading={aiOverviewQuery.isLoading} />
       </div>
     </div>
   );
