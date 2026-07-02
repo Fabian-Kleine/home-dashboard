@@ -64,12 +64,6 @@ export function Sidebar() {
                     <IconChevronLeft />
                 </Button>
 
-                {/* Brand */}
-                <div className="flex items-center gap-3 px-2 pb-6 pt-0.5">
-                    <div className="size-9 rounded-xl bg-linear-to-br from-[#16a99a] to-[#2e8fe6]" />
-                    <div className="text-xl font-semibold text-[#17323a] dark:text-slate-100">Aurora</div>
-                </div>
-
                 <div className="px-2.5 pb-2 text-[11px] font-extrabold tracking-[0.08em] text-[#17323a]/45 dark:text-slate-300/50">
                     {t.sidebar.dashboards.toUpperCase()}
                 </div>
