@@ -97,11 +97,10 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   --mesh-background:
-    radial-gradient(at 18% 16%,#63d8c6,transparent 55%),
-    radial-gradient(at 84% 6%,#6fb9f2,transparent 52%),
-    radial-gradient(at 74% 84%,#7fe3aa,transparent 55%),
-    radial-gradient(at 22% 94%,#93d2ff,transparent 55%),
-    linear-gradient(135deg,#d8f1eb,#cfe7f5);
+    radial-gradient(circle at 82% 10%,rgba(255,252,224,0.95) 0%,rgba(255,236,166,0.55) 6%,transparent 18%),
+    radial-gradient(ellipse at 12% 22%,rgba(255,255,255,0.5) 0%,transparent 45%),
+    radial-gradient(ellipse at 62% 38%,rgba(255,255,255,0.35) 0%,transparent 42%),
+    linear-gradient(180deg,#3f8ad9 0%,#6fb3e2 30%,#a9d8ea 62%,#eaf6f3 100%);
   --flow-bg: linear-gradient(160deg,#f2f9fb,#eef6f1);
   --flow-ink: #17323a;
   --flow-muted: #8aa0a2;
@@ -164,11 +163,45 @@
   --sidebar-ring: oklch(0.556 0 0);
 
   --mesh-background:
-    radial-gradient(at 18% 16%,#0f766e,transparent 55%),
-    radial-gradient(at 84% 6%,#1d4ed8,transparent 52%),
-    radial-gradient(at 74% 84%,#065f46,transparent 55%),
-    radial-gradient(at 22% 94%,#0c4a6e,transparent 55%),
-    linear-gradient(135deg,#0b1120,#0f172a);
+    radial-gradient(circle at 22% 16%,rgba(255,255,255,0.55) 0%,rgba(226,236,255,0.2) 8%,transparent 18%),
+    radial-gradient(1.5px 1.5px at 10% 10%,#fff,transparent),
+    radial-gradient(1px 1px at 25% 24%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 40% 8%,#fff,transparent),
+    radial-gradient(1px 1px at 56% 18%,#cfe0ff,transparent),
+    radial-gradient(1.5px 1.5px at 70% 12%,#fff,transparent),
+    radial-gradient(1px 1px at 85% 26%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 93% 8%,#cfe0ff,transparent),
+    radial-gradient(1px 1px at 15% 36%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 34% 46%,#fff,transparent),
+    radial-gradient(1px 1px at 49% 30%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 63% 42%,#cfe0ff,transparent),
+    radial-gradient(1px 1px at 79% 50%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 91% 40%,#fff,transparent),
+    radial-gradient(1px 1px at 5% 56%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 22% 62%,#fff,transparent),
+    radial-gradient(1px 1px at 45% 60%,#cfe0ff,transparent),
+    radial-gradient(1.5px 1.5px at 68% 64%,#fff,transparent),
+    radial-gradient(1px 1px at 82% 60%,#fff,transparent),
+    radial-gradient(1px 1px at 3% 30%,#fff,transparent),
+    radial-gradient(1px 1px at 18% 5%,#cfe0ff,transparent),
+    radial-gradient(1.5px 1.5px at 30% 70%,#fff,transparent),
+    radial-gradient(1px 1px at 38% 88%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 52% 76%,#cfe0ff,transparent),
+    radial-gradient(1px 1px at 60% 92%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 74% 82%,#fff,transparent),
+    radial-gradient(1px 1px at 88% 78%,#cfe0ff,transparent),
+    radial-gradient(1.5px 1.5px at 96% 55%,#fff,transparent),
+    radial-gradient(1px 1px at 8% 78%,#fff,transparent),
+    radial-gradient(1px 1px at 47% 14%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 64% 22%,#cfe0ff,transparent),
+    radial-gradient(1px 1px at 12% 48%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 42% 40%,#fff,transparent),
+    radial-gradient(1px 1px at 58% 52%,#cfe0ff,transparent),
+    radial-gradient(1.5px 1.5px at 76% 34%,#fff,transparent),
+    radial-gradient(1px 1px at 95% 68%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 28% 84%,#cfe0ff,transparent),
+    radial-gradient(1px 1px at 65% 6%,#fff,transparent),
+    linear-gradient(180deg,#04050d 0%,#0b1330 35%,#16213e 65%,#1c2740 100%);
   --flow-bg: linear-gradient(160deg,#1c2b3a,#16212c);
   --flow-ink: #e6edf0;
   --flow-muted: #93a5ab;
