@@ -13,10 +13,11 @@ import isolarRoute from "./routes/isolar.route.js";
 import weatherRoute from "./routes/weather.route.js";
 
 const app = express();
-const allowedOrigins = (process.env.FRONTEND_ORIGIN ?? "http://localhost:5173")
+const configuredOrigins = (process.env.FRONTEND_ORIGIN ?? "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowedOrigins = configuredOrigins.includes("*") ? "*" : configuredOrigins;
 
 app.use(
   cors({
