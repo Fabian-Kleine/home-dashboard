@@ -9,13 +9,13 @@ set -euo pipefail
 #   --no-install   Skip `pnpm install` at repo root
 #   --no-sudo      Do not use sudo when copying to target
 #   --app <path>   App directory relative to repo root (default: apps/web)
-#   --target <dir> Target deploy directory (default: /var/www/html/home-dashboard)
+#   --target <dir> Target deploy directory (default: /var/www/html)
 
 NO_GIT=0
 NO_INSTALL=0
 USE_SUDO=1
 APP_DIR="apps/web"
-TARGET_DIR="/var/www/html/home-dashboard"
+TARGET_DIR="/var/www/html"
 
 while [ $# -gt 0 ]; do
 	case "$1" in

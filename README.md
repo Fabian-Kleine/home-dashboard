@@ -68,4 +68,4 @@ pnpm typecheck   # typecheck all workspaces
 
 ## Deployment
 
-`bin/deploy.sh` builds `apps/web` and copies the static output to a target directory on a server (default `/var/www/html/home-dashboard`), intended to run behind nginx. See `bin/install-deps.sh` for initial host provisioning. Run `bin/deploy.sh --help` for available flags.
+`bin/deploy.sh` builds `apps/web` and copies the static output to a target directory on a server (default `/var/www/html`, i.e. nginx's default document root — the app is served at `/`), intended to run behind nginx. See `bin/install-deps.sh` for initial host provisioning. Run `bin/deploy.sh --help` for available flags.
