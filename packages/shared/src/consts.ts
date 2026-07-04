@@ -7,6 +7,7 @@ export const API_ROUTES = {
   isolarLogout: "/isolar/logout",
   isolarStatus: "/isolar/status",
   isolarSolarData: "/isolar/solar-data",
+  isolarStatistics: "/isolar/statistics",
   aiOverview: "/ai/overview",
 } as const;
 

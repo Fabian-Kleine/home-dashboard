@@ -1,4 +1,11 @@
-import type { IsolarPvString, IsolarSolarData } from "@repo/shared";
+import type {
+    IsolarDailyProductionPoint,
+    IsolarMonthlyProductionPoint,
+    IsolarPvString,
+    IsolarRoofPowerPoint,
+    IsolarSolarData,
+    IsolarStatistics,
+} from "@repo/shared";
 
 // These endpoints are the "User" (direct account/password login) API family,
 // not the OAuth2.0 developer-portal API — the two use different paths and
@@ -8,6 +15,12 @@ const ISOLAR_LOGIN_PATH = "/login";
 const ISOLAR_QUERY_STATION_LIST_PATH = "/getPowerStationList";
 const ISOLAR_DEVICE_LIST_PATH = "/getDeviceList";
 const ISOLAR_REAL_TIME_DATA_PATH = "/getDeviceRealTimeData";
+// Historical measuring-point data bucketed by day/month/year for devices of one type.
+// Returns yield in Wh / power in W. Used by the Statistics page.
+const ISOLAR_DAY_MONTH_YEAR_PATH = "/getDevicePointsDayMonthYearDataList";
+// Minute-level measuring-point time series (max 3-hour window per call). Used for the
+// intraday per-roof power chart.
+const ISOLAR_MINUTE_DATA_PATH = "/getDevicePointMinuteDataList";
 const ISOLAR_SYS_CODE = "901";
 const ISOLAR_LANG = "_de_DE";
 
@@ -136,7 +149,10 @@ async function callIsolarApi<T>(
     }
 
     if (!response.ok || payload.result_code !== "1" || !payload.result_data) {
-        throw new IsolarAuthError(payload.result_data?.msg ?? payload.result_msg ?? "iSolarCloud request failed");
+        const message = payload.result_data?.msg ?? payload.result_msg ?? "iSolarCloud request failed";
+        // Surface the iSolarCloud result_code — e.g. "009" = interface not authorized for this appkey,
+        // "E900" = token expired — so failures like this are diagnosable from the log.
+        throw new IsolarAuthError(payload.result_code ? `${message} (result_code ${payload.result_code})` : message);
     }
 
     return payload.result_data;
@@ -385,4 +401,250 @@ export async function getSolarData(token: string, psId: string, inverter?: Isola
         dailyYieldKwh: dailyYieldWh === undefined ? 0 : dailyYieldWh / 1000,
         pvStrings,
     };
+}
+
+// ---------------------------------------------------------------------------
+// Historical production (Statistics page) — /getDevicePointsDayMonthYearDataList
+//
+// Request (per the iSolarCloud OpenAPI doc):
+//   ps_key_list  – device ps_keys of ONE device type (we use the plant "device", 11)
+//   data_point   – comma-separated "p"-prefixed measuring point IDs
+//   query_type   – "1"=daily, "2"=monthly, "3"=annual
+//   data_type    – "1"=mean "2"=peak "3"=trough "4"=total (total only valid month/year)
+//   start_time / end_time – format depends on query_type: day yyyyMMdd, month yyyyMM
+//   order        – 0=chronological
+// Response:
+//   result_data[ps_key][point] = [ { "<data_type>": "<value>", time_stamp: "..." } ]
+//   Values are in Wh for yield points. Today's data is never returned.
+// A parse/auth failure yields an empty series and the frontend falls back to sample data.
+// ---------------------------------------------------------------------------
+
+// "Daily Yield of Plant" (Wh) on the plant "device" — the same point the real-time
+// path reads for today's yield; historical day/month buckets aggregate it too.
+const YIELD_POINT = `p${POINT_DAILY_YIELD}`;
+
+const QUERY_TYPE_DAILY = "1";
+const QUERY_TYPE_MONTHLY = "2";
+const DATA_TYPE_PEAK = "2"; // per-day: peak of the resetting daily-yield counter = that day's total
+const DATA_TYPE_TOTAL = "4"; // per-month: summed yield across the month
+
+const MONTHS_WINDOW = 12;
+const DAYS_WINDOW = 14;
+
+// result_data is keyed by ps_key, then by point id, to a list of time-stamped buckets.
+type DayMonthYearResult = Record<string, Record<string, Array<Record<string, string>>>>;
+
+function yyyymm(date: Date): string {
+    return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function yyyymmdd(date: Date): string {
+    return `${yyyymm(date)}${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function isoMonth(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function isoDate(date: Date): string {
+    return `${isoMonth(date)}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Fetch plant PV yield bucketed by day or month, returned as a map from the raw
+ * iSolarCloud `time_stamp` (yyyyMMdd or yyyyMM) to kWh.
+ */
+async function fetchYieldBuckets(
+    token: string,
+    psId: string,
+    queryType: string,
+    dataType: string,
+    startTime: string,
+    endTime: string
+): Promise<Map<string, number>> {
+    const { appkey, accessKey } = getIsolarCredentials();
+    const psKey = `${psId}_${PLANT_DEVICE_TYPE}_0_0`;
+    const granularity = queryType === QUERY_TYPE_DAILY ? "daily" : "monthly";
+    const buckets = new Map<string, number>();
+
+    try {
+        const result = await callIsolarApi<DayMonthYearResult>(
+            ISOLAR_DAY_MONTH_YEAR_PATH,
+            accessKey,
+            {
+                appkey,
+                ps_key_list: [psKey],
+                data_point: YIELD_POINT,
+                data_type: dataType,
+                query_type: queryType,
+                start_time: startTime,
+                end_time: endTime,
+                order: 0,
+            },
+            token
+        );
+
+        const series = result[psKey]?.[YIELD_POINT];
+
+        if (!series) {
+            console.warn(
+                `iSolarCloud ${granularity} yield returned no series for ${YIELD_POINT}; ps_keys: ${Object.keys(result).join(", ")}`
+            );
+            return buckets;
+        }
+
+        for (const entry of series) {
+            const yieldWh = firstDefinedNumber(entry[dataType]);
+            if (entry.time_stamp && yieldWh !== undefined) {
+                buckets.set(entry.time_stamp, yieldWh / 1000);
+            }
+        }
+    } catch (error) {
+        console.warn(`Could not fetch iSolarCloud ${granularity} yield:`, error);
+    }
+
+    return buckets;
+}
+
+// ---------------------------------------------------------------------------
+// Intraday per-roof power (Statistics page) — /getDevicePointMinuteDataList
+//
+// The minute endpoint caps each request at a 3-hour window and never returns today's
+// data, so we pull the most recent full day (yesterday) in eight 3-hour chunks and
+// derive per-roof power from the same string config the real-time path uses (direct
+// power point, or P = V * I for MPPT-only ESS inverters).
+// ---------------------------------------------------------------------------
+
+const ROOF_HISTORY_CHUNK_HOURS = 3;
+const ROOF_HISTORY_MINUTE_INTERVAL = "15";
+
+// result_data is keyed by ps_key to a list of time-stamped point readings.
+type MinuteDataResult = Record<string, Array<Record<string, string>>>;
+
+function yyyymmddhhmmss(date: Date): string {
+    return `${yyyymmdd(date)}${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}${String(date.getSeconds()).padStart(2, "0")}`;
+}
+
+/** "20211122081500" → "2021-11-22T08:15:00" (kept in the plant's local wall-clock, no tz shift). */
+function isoFromStamp(stamp: string): string {
+    return `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}T${stamp.slice(8, 10)}:${stamp.slice(10, 12)}:${stamp.slice(12, 14)}`;
+}
+
+/** Power (kW) for one PV string from a minute-data reading — direct point, or P = V * I. */
+function roofReadingKw(config: PvStringPointConfig, reading: Record<string, string>): number {
+    if (config.kind === "power") {
+        return toKw(firstDefinedNumber(reading[`p${config.pointId}`]));
+    }
+    const voltage = firstDefinedNumber(reading[`p${config.voltagePointId}`]);
+    const current = firstDefinedNumber(reading[`p${config.currentPointId}`]);
+    return toKw(voltage !== undefined && current !== undefined ? voltage * current : undefined);
+}
+
+async function getRoofPowerHistory(
+    token: string,
+    inverter: IsolarInverterRef | undefined,
+    reference: Date
+): Promise<IsolarRoofPowerPoint[]> {
+    const configs = inverter ? PV_STRING_CONFIG_BY_DEVICE_TYPE[inverter.deviceType] : undefined;
+    const [eastConfig, westConfig] = configs ?? [];
+
+    if (!inverter || !eastConfig || !westConfig) return [];
+
+    const { appkey, accessKey } = getIsolarCredentials();
+    const points = Array.from(
+        new Set(
+            [eastConfig, westConfig].flatMap((config) =>
+                config.kind === "power" ? [config.pointId] : [config.voltagePointId, config.currentPointId]
+            )
+        )
+    )
+        .map((id) => `p${id}`)
+        .join(",");
+
+    // Yesterday, split into 3-hour windows (the endpoint's max range, and today is excluded).
+    const dayStart = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() - 1, 0, 0, 0);
+    const chunks: Array<{ start: Date; end: Date }> = [];
+    for (let hour = 0; hour < 24; hour += ROOF_HISTORY_CHUNK_HOURS) {
+        const start = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate(), hour, 0, 0);
+        const end = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate(), hour + ROOF_HISTORY_CHUNK_HOURS, 0, -1); // …:59:59
+        chunks.push({ start, end });
+    }
+
+    const chunkSeries = await Promise.all(
+        chunks.map(async ({ start, end }) => {
+            try {
+                const result = await callIsolarApi<MinuteDataResult>(
+                    ISOLAR_MINUTE_DATA_PATH,
+                    accessKey,
+                    {
+                        appkey,
+                        ps_key_list: [inverter.psKey],
+                        points,
+                        minute_interval: ROOF_HISTORY_MINUTE_INTERVAL,
+                        start_time_stamp: yyyymmddhhmmss(start),
+                        end_time_stamp: yyyymmddhhmmss(end),
+                    },
+                    token
+                );
+                return result[inverter.psKey] ?? [];
+            } catch (error) {
+                console.warn("Could not fetch iSolarCloud roof-power chunk:", error);
+                return [];
+            }
+        })
+    );
+
+    return chunkSeries
+        .flat()
+        .flatMap((reading) => {
+            const stamp = reading.time_stamp;
+            if (!stamp) return [];
+            return [
+                {
+                    time: isoFromStamp(stamp),
+                    east: roofReadingKw(eastConfig, reading),
+                    west: roofReadingKw(westConfig, reading),
+                },
+            ];
+        })
+        .sort((a, b) => a.time.localeCompare(b.time));
+}
+
+/**
+ * Historical PV data for the Statistics page: total yield per month for the last 12
+ * months, per day for the last 14 days, and per-roof power across the most recent full
+ * day. Everything ends yesterday (the historical endpoints never return today). Missing
+ * buckets simply don't appear; the frontend fills gaps with sample data.
+ */
+export async function getSolarStatistics(
+    token: string,
+    psId: string,
+    inverter?: IsolarInverterRef,
+    reference: Date = new Date()
+): Promise<IsolarStatistics> {
+    const monthStart = new Date(reference.getFullYear(), reference.getMonth() - (MONTHS_WINDOW - 1), 1);
+    const dayStart = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() - DAYS_WINDOW);
+    const yesterday = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() - 1);
+
+    const [monthlyBuckets, dailyBuckets, roofPower] = await Promise.all([
+        fetchYieldBuckets(token, psId, QUERY_TYPE_MONTHLY, DATA_TYPE_TOTAL, yyyymm(monthStart), yyyymm(reference)),
+        fetchYieldBuckets(token, psId, QUERY_TYPE_DAILY, DATA_TYPE_PEAK, yyyymmdd(dayStart), yyyymmdd(yesterday)),
+        getRoofPowerHistory(token, inverter, reference),
+    ]);
+
+    const monthly: IsolarMonthlyProductionPoint[] = [];
+    for (let i = MONTHS_WINDOW - 1; i >= 0; i--) {
+        const date = new Date(reference.getFullYear(), reference.getMonth() - i, 1);
+        const productionKwh = monthlyBuckets.get(yyyymm(date));
+        if (productionKwh !== undefined) monthly.push({ month: isoMonth(date), productionKwh });
+    }
+
+    const daily: IsolarDailyProductionPoint[] = [];
+    for (let i = DAYS_WINDOW; i >= 1; i--) {
+        const date = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() - i);
+        const productionKwh = dailyBuckets.get(yyyymmdd(date));
+        if (productionKwh !== undefined) daily.push({ date: isoDate(date), productionKwh });
+    }
+
+    return { monthly, daily, roofPower };
 }

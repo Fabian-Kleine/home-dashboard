@@ -79,6 +79,41 @@ export type IsolarSolarData = {
   pvStrings: IsolarPvString[];
 };
 
+/** One month of total PV production. `month` is an ISO "YYYY-MM" anchor for locale-aware labelling. */
+export type IsolarMonthlyProductionPoint = {
+  month: string;
+  productionKwh: number;
+};
+
+/** One day of total PV production. `date` is an ISO "YYYY-MM-DD" anchor for locale-aware labelling. */
+export type IsolarDailyProductionPoint = {
+  date: string;
+  productionKwh: number;
+};
+
+/**
+ * One timestamp of per-roof PV output (kW) for the intraday power chart. `time` is a
+ * local ISO datetime with no offset (e.g. "2024-07-24T08:15:00") — the dashboard runs
+ * in the plant's own timezone, so it's formatted as-is.
+ */
+export type IsolarRoofPowerPoint = {
+  time: string;
+  east: number;
+  west: number;
+};
+
+/**
+ * Historical production for the Statistics page, from iSolarCloud's day/month/year and
+ * minute-level measuring-point endpoints. Any list may be empty if the API returns
+ * nothing usable, in which case the frontend falls back to sample data.
+ */
+export type IsolarStatistics = {
+  monthly: IsolarMonthlyProductionPoint[];
+  daily: IsolarDailyProductionPoint[];
+  /** Per-roof output over the most recent full day (the minute endpoint excludes today). */
+  roofPower: IsolarRoofPowerPoint[];
+};
+
 export type DashboardData = {
   weather: CurrentWeatherData;
   solar: PowerSource;

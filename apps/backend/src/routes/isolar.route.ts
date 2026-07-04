@@ -1,7 +1,14 @@
-import { API_ROUTES, type IsolarLoginRequest, type IsolarSolarData, type IsolarStatusResponse } from "@repo/shared";
+import {
+    API_ROUTES,
+    type IsolarLoginRequest,
+    type IsolarSolarData,
+    type IsolarStatistics,
+    type IsolarStatusResponse,
+} from "@repo/shared";
 import { Router, type Request, type Response, type Router as ExpressRouter } from "express";
 import {
     getSolarData,
+    getSolarStatistics,
     ISOLAR_INVERTER_DEVICE_TYPE_COOKIE,
     ISOLAR_INVERTER_PS_KEY_COOKIE,
     ISOLAR_PS_ID_COOKIE,
@@ -130,6 +137,49 @@ router.get(API_ROUTES.isolarSolarData, async (request, response) => {
         }
 
         console.error("Failed to fetch iSolarCloud solar data:", error);
+        response.status(502).json({ error: "Unable to reach the iSolarCloud API right now" });
+    }
+});
+
+router.get(API_ROUTES.isolarStatistics, async (request, response) => {
+    const token = request.cookies?.[ISOLAR_TOKEN_COOKIE];
+
+    if (!token) {
+        return response.status(401).json({ error: "Not connected to iSolarCloud" });
+    }
+
+    try {
+        let psId = request.cookies?.[ISOLAR_PS_ID_COOKIE];
+
+        if (!psId) {
+            psId = await queryFirstPowerStationId(token);
+            setIsolarCookie(response, ISOLAR_PS_ID_COOKIE, psId);
+        }
+
+        // The intraday per-roof chart needs the inverter ref (its string points), resolved
+        // the same way solar-data does: from cookies, else look it up and cache it.
+        let inverter = readInverterRefFromCookies(request);
+
+        if (!inverter) {
+            try {
+                inverter = await queryFirstInverterRef(token, psId);
+                if (inverter) {
+                    setInverterCookies(response, inverter);
+                }
+            } catch (inverterError) {
+                console.warn("Could not resolve an inverter for per-roof statistics:", inverterError);
+            }
+        }
+
+        const statistics: IsolarStatistics = await getSolarStatistics(token, psId, inverter);
+        response.json(statistics);
+    } catch (error) {
+        if (error instanceof IsolarAuthError) {
+            clearIsolarCookies(response);
+            return response.status(401).json({ error: error.message });
+        }
+
+        console.error("Failed to fetch iSolarCloud statistics:", error);
         response.status(502).json({ error: "Unable to reach the iSolarCloud API right now" });
     }
 });
