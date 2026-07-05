@@ -62,6 +62,17 @@ const POINT_BATTERY_LEVEL_EMS = "83334"; // Energy Storage SOC (EMS) (%)
 const POINT_FEED_IN_POWER = "13121"; // Feed-in (export) Power (W), device-level
 const POINT_PURCHASED_POWER = "13149"; // Purchased (import) Power (W), device-level
 
+// Residential ESS/hybrid inverters (device_type 14) expose a full, self-consistent live
+// snapshot on the inverter device itself — every point below shares one timestamp, so the
+// derived energy flow balances and tracks the iSolarCloud app. (The plant "device" only
+// returns solar/load/SOC for this install and never battery/grid power, and stitching
+// separate plant + per-string + fallback calls yields an out-of-sync flow that neither
+// balances nor matches the app.) Grid is netted from POINT_FEED_IN_POWER − POINT_PURCHASED_POWER.
+const POINT_ESS_PV_POWER = "13003"; // Total PV (solar) power (W)
+const POINT_ESS_DAILY_YIELD = "13112"; // Daily PV yield (Wh)
+const POINT_ESS_BATTERY_POWER = "13126"; // Battery power (W), positive = charging
+const POINT_ESS_SOC = "13141"; // Battery level / SOC (0-1 fraction)
+
 // Per-string DC input, keyed by device type — plain inverters report string
 // power directly, while ESS/hybrid inverters only report MPPT voltage and
 // current, so power has to be computed (P = V * I). Labels match this
@@ -340,7 +351,95 @@ async function getInverterGridAndBatteryPower(
     };
 }
 
+// Read the full live snapshot from a residential ESS/hybrid inverter in ONE request, so
+// every value shares a timestamp and the energy flow balances (matching how the iSolarCloud
+// app presents it). House consumption is *derived* from that balanced flow rather than read
+// from the load meter, whose reading is sampled independently and can briefly desync (we saw
+// it spike to ~2.7 kW while the true house draw was ~0.6 kW).
+async function getEssSolarData(token: string, inverter: IsolarInverterRef): Promise<IsolarSolarData> {
+    const { appkey, accessKey } = getIsolarCredentials();
+    const stringConfigs = PV_STRING_CONFIG_BY_DEVICE_TYPE[inverter.deviceType] ?? [];
+
+    const stringPointIds = stringConfigs.flatMap((config) =>
+        config.kind === "power" ? [config.pointId] : [config.voltagePointId, config.currentPointId]
+    );
+
+    const pointIds = Array.from(
+        new Set([
+            POINT_ESS_PV_POWER,
+            POINT_ESS_DAILY_YIELD,
+            POINT_FEED_IN_POWER,
+            POINT_PURCHASED_POWER,
+            POINT_ESS_BATTERY_POWER,
+            POINT_ESS_SOC,
+            ...stringPointIds,
+        ])
+    );
+
+    const data = await callIsolarApi<IsolarRealTimeDataResult>(
+        ISOLAR_REAL_TIME_DATA_PATH,
+        accessKey,
+        { appkey, device_type: inverter.deviceType, ps_key_list: [inverter.psKey], point_id_list: pointIds },
+        token
+    );
+
+    const point = data.device_point_list?.[0]?.device_point;
+
+    if (!point) {
+        throw new IsolarAuthError("No real-time data returned for this inverter");
+    }
+
+    const solarPowerKw = toKw(firstDefinedNumber(point[`p${POINT_ESS_PV_POWER}`]));
+    const dailyYieldWh = firstDefinedNumber(point[`p${POINT_ESS_DAILY_YIELD}`]);
+    const feedInW = firstDefinedNumber(point[`p${POINT_FEED_IN_POWER}`]) ?? 0;
+    const purchasedW = firstDefinedNumber(point[`p${POINT_PURCHASED_POWER}`]) ?? 0;
+    const gridPowerKw = toKw(feedInW - purchasedW); // positive = export, negative = import
+    const batteryPowerKw = toKw(firstDefinedNumber(point[`p${POINT_ESS_BATTERY_POWER}`])); // positive = charging
+    const batteryLevel = toPercent(firstDefinedNumber(point[`p${POINT_ESS_SOC}`]));
+
+    // Per-string DC power for the roof breakdown (P = V × I for MPPT-only ESS inverters),
+    // scaled to the inverter's own PV-power total so the breakdown stays consistent with the
+    // headline figure while preserving each roof's share.
+    const rawStrings = stringConfigs
+        .map((config) => {
+            if (config.kind === "power") {
+                return { label: config.label, powerKw: toKw(firstDefinedNumber(point[`p${config.pointId}`])) };
+            }
+            const voltage = firstDefinedNumber(point[`p${config.voltagePointId}`]);
+            const current = firstDefinedNumber(point[`p${config.currentPointId}`]);
+            const watts = voltage !== undefined && current !== undefined ? voltage * current : undefined;
+            return { label: config.label, powerKw: toKw(watts) };
+        })
+        .filter((pvString) => pvString.powerKw > 0);
+
+    const rawStringSumKw = rawStrings.reduce((sum, pvString) => sum + pvString.powerKw, 0);
+    const pvStrings =
+        rawStringSumKw > 0 && solarPowerKw > 0
+            ? rawStrings.map((pvString) => ({ ...pvString, powerKw: pvString.powerKw * (solarPowerKw / rawStringSumKw) }))
+            : rawStrings;
+
+    // Derive house consumption from the balanced flow: load = solar − gridExport − batteryCharge
+    // (grid positive = export, battery positive = charging). Clamp away sub-watt negatives from rounding.
+    const loadPowerKw = Math.max(0, solarPowerKw - gridPowerKw - batteryPowerKw);
+
+    return {
+        solarPowerKw,
+        gridPowerKw,
+        batteryPowerKw,
+        batteryLevel,
+        loadPowerKw,
+        dailyYieldKwh: dailyYieldWh === undefined ? 0 : dailyYieldWh / 1000,
+        pvStrings,
+    };
+}
+
 export async function getSolarData(token: string, psId: string, inverter?: IsolarInverterRef): Promise<IsolarSolarData> {
+    // Residential ESS/hybrid inverters expose a complete, single-timestamp snapshot on the
+    // inverter device; read that directly so the flow is coherent (see getEssSolarData).
+    if (inverter?.deviceType === ESS_INVERTER_DEVICE_TYPE) {
+        return getEssSolarData(token, inverter);
+    }
+
     const { appkey, accessKey } = getIsolarCredentials();
     const psKey = `${psId}_${PLANT_DEVICE_TYPE}_0_0`;
 
