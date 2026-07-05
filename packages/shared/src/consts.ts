@@ -9,6 +9,7 @@ export const API_ROUTES = {
   isolarSolarData: "/isolar/solar-data",
   isolarStatistics: "/isolar/statistics",
   aiOverview: "/ai/overview",
+  news: "/news",
 } as const;
 
 export const PRODUCTION_STATUS = {

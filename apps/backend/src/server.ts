@@ -10,6 +10,7 @@ import {
 import { getWeatherData } from "./lib/weather.js";
 import aiRoute from "./routes/ai.route.js";
 import isolarRoute from "./routes/isolar.route.js";
+import newsRoute from "./routes/news.route.js";
 import weatherRoute from "./routes/weather.route.js";
 
 const app = express();
@@ -41,6 +42,7 @@ app.get(API_ROUTES.health, (_request, response) => {
 app.use(weatherRoute);
 app.use(isolarRoute);
 app.use(aiRoute);
+app.use(newsRoute);
 
 const port = Number(process.env.PORT ?? 4000);
 

@@ -7,6 +7,7 @@ import {
     IconHome,
     IconHomeFilled,
     IconMenu2,
+    IconNews,
     IconSolarPanel,
     type TablerIcon,
 } from "@tabler/icons-react";
@@ -48,6 +49,7 @@ export function Sidebar() {
     const NAV_LINKS: NavLink[] = [
         { to: "/", label: t.sidebar.navHome, exact: true, icon: IconHome, iconActive: IconHomeFilled },
         { to: "/weather", label: t.sidebar.navWeather, icon: IconCloud, iconActive: IconCloudFilled },
+        { to: "/news", label: t.sidebar.navNews, icon: IconNews },
         {
             to: "/solar",
             label: t.sidebar.navSolar,

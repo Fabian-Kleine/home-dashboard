@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router";
+import { IconArrowRight } from "@tabler/icons-react";
 import { PRODUCTION_STATUS, type IsolarSolarData, type ProductionStatus } from "@repo/shared";
 
 import { GlassCard } from "@/components/dashboard/glass-card";
@@ -17,12 +19,14 @@ export function ProductionStatusCard({
   solarData,
   productionStatus,
   kwhToday,
+  showDetailsLink = false,
   className,
 }: {
   isSungrowConnected: boolean;
   solarData: IsolarSolarData | undefined;
   productionStatus: ProductionStatus;
   kwhToday: number;
+  showDetailsLink?: boolean;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -30,7 +34,15 @@ export function ProductionStatusCard({
 
   return (
     <GlassCard className={cn("col-span-12 flex flex-col justify-between gap-4 p-6 lg:col-span-5", className)}>
-      <div className="text-lg font-semibold">{t.productionStatus.title}</div>
+      <div className="flex items-center justify-between">
+        <div className="text-lg font-semibold">{t.productionStatus.title}</div>
+        {showDetailsLink && (
+          <Link to="/solar" className="group flex items-center gap-1 text-[13px] font-extrabold text-[#0f8b7f] no-underline dark:text-teal-300">
+            {t.solarSystem.details}
+            <IconArrowRight className='size-4 transition-transform group-hover:translate-x-1' />
+          </Link>
+        )}
+      </div>
       {isSungrowConnected ? (
         solarData ? (
           <>

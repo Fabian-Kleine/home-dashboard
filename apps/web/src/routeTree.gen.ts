@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WeatherRouteImport } from './routes/weather'
 import { Route as SolarRouteImport } from './routes/solar'
+import { Route as NewsRouteImport } from './routes/news'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SolarIndexRouteImport } from './routes/solar.index'
 import { Route as SolarStatisticsRouteImport } from './routes/solar.statistics'
@@ -23,6 +24,11 @@ const WeatherRoute = WeatherRouteImport.update({
 const SolarRoute = SolarRouteImport.update({
   id: '/solar',
   path: '/solar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsRoute = NewsRouteImport.update({
+  id: '/news',
+  path: '/news',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,6 +49,7 @@ const SolarStatisticsRoute = SolarStatisticsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/news': typeof NewsRoute
   '/solar': typeof SolarRouteWithChildren
   '/weather': typeof WeatherRoute
   '/solar/statistics': typeof SolarStatisticsRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/news': typeof NewsRoute
   '/weather': typeof WeatherRoute
   '/solar/statistics': typeof SolarStatisticsRoute
   '/solar': typeof SolarIndexRoute
@@ -57,6 +65,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/news': typeof NewsRoute
   '/solar': typeof SolarRouteWithChildren
   '/weather': typeof WeatherRoute
   '/solar/statistics': typeof SolarStatisticsRoute
@@ -64,14 +73,28 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/solar' | '/weather' | '/solar/statistics' | '/solar/'
+  fullPaths:
+    | '/'
+    | '/news'
+    | '/solar'
+    | '/weather'
+    | '/solar/statistics'
+    | '/solar/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/weather' | '/solar/statistics' | '/solar'
-  id: '__root__' | '/' | '/solar' | '/weather' | '/solar/statistics' | '/solar/'
+  to: '/' | '/news' | '/weather' | '/solar/statistics' | '/solar'
+  id:
+    | '__root__'
+    | '/'
+    | '/news'
+    | '/solar'
+    | '/weather'
+    | '/solar/statistics'
+    | '/solar/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  NewsRoute: typeof NewsRoute
   SolarRoute: typeof SolarRouteWithChildren
   WeatherRoute: typeof WeatherRoute
 }
@@ -90,6 +113,13 @@ declare module '@tanstack/react-router' {
       path: '/solar'
       fullPath: '/solar'
       preLoaderRoute: typeof SolarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news': {
+      id: '/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof NewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -130,6 +160,7 @@ const SolarRouteWithChildren = SolarRoute._addFileChildren(SolarRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  NewsRoute: NewsRoute,
   SolarRoute: SolarRouteWithChildren,
   WeatherRoute: WeatherRoute,
 }

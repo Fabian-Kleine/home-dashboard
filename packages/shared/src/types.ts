@@ -130,3 +130,37 @@ export type AiOverviewRequest = {
 export type AiOverviewResponse = {
   summary: string;
 };
+
+/**
+ * A single normalized news item from the Tagesschau feed. The backend flattens the
+ * source's verbose shape (tracking, streams, image variants, …) down to just what the
+ * dashboard renders.
+ */
+export type NewsArticle = {
+  /** Stable id from the source feed (`sophoraId`, falling back to `externalId`). */
+  id: string;
+  title: string;
+  /** ISO 8601 publication timestamp. */
+  date: string;
+  /** Short kicker/region above the headline (e.g. "Schleswig-Holstein"), if present. */
+  topline?: string;
+  /** Teaser sentence, if present. */
+  firstSentence?: string;
+  /** 16:9 teaser image URL chosen from the source's variants, if present. */
+  imageUrl?: string;
+  imageAlt?: string;
+  /** Article tags, flattened from the source's `{ tag }[]`. */
+  tags: string[];
+  /** Source content type, e.g. "story" or "video". */
+  type: string;
+  /** Whether the source flagged this as breaking news. */
+  breakingNews: boolean;
+  /** Web URL to open the full article/video in a browser, if available. */
+  link?: string;
+};
+
+export type NewsData = {
+  articles: NewsArticle[];
+  /** ISO 8601 timestamp of when the backend last fetched from the source. */
+  updatedAt: string;
+};

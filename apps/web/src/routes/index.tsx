@@ -11,10 +11,11 @@ import { TopBar } from "@/components/top-bar";
 import { WeatherHeroCard } from "@/components/dashboard/weather-hero-card";
 import { ProductionStatusCard } from "@/components/dashboard/production-status-card";
 import { WeatherNowCard } from "@/components/dashboard/weather-now-card";
-import { SolarSystemCard } from "@/components/dashboard/solar-system-card";
+import { NewsCard } from "@/components/dashboard/news-card";
 import { PowerFlowCard } from "@/components/dashboard/power-flow-card";
 import { OutlookCard } from "@/components/dashboard/outlook-card";
 import { fetchWeather, useWeatherLocation } from "@/lib/weather";
+import { useNews } from "@/lib/news";
 import { buildDisplayData, computeKwhToday, FALLBACK_DASHBOARD_DATA } from "@/lib/solar";
 import { useAiOverview } from "@/lib/ai-overview";
 
@@ -40,6 +41,8 @@ function HomePage() {
     staleTime: REFRESH_INTERVAL_MS - 1_000,
   });
 
+  const newsQuery = useNews(REFRESH_INTERVAL_MS - 1_000);
+
   const now = new Date();
   const weather = weatherQuery.data;
   const isWeatherOutdated = weatherQuery.isError && weather !== undefined;
@@ -61,7 +64,8 @@ function HomePage() {
       void refetchSolarData();
     }
     void aiOverviewQuery.refetch();
-  }, [weatherQuery.refetch, isSungrowConnected, refetchSolarData, aiOverviewQuery.refetch]);
+    void newsQuery.refetch();
+  }, [weatherQuery.refetch, isSungrowConnected, refetchSolarData, aiOverviewQuery.refetch, newsQuery.refetch]);
 
   useRegisterPageRefresh({
     onRefresh: handlePageRefresh,
@@ -104,6 +108,7 @@ function HomePage() {
           solarData={solarData}
           productionStatus={displayData.productionStatus}
           kwhToday={kwhToday}
+          showDetailsLink
         />
 
         <WeatherNowCard
@@ -114,7 +119,11 @@ function HomePage() {
           onRetry={handlePageRefresh}
         />
 
-        <SolarSystemCard isSungrowConnected={isSungrowConnected} solarData={solarData} displayData={displayData} />
+        <NewsCard
+          articles={newsQuery.data?.articles}
+          isLoading={newsQuery.isLoading}
+          isError={newsQuery.isError}
+        />
 
         <PowerFlowCard isSungrowConnected={isSungrowConnected} solarData={solarData} displayData={displayData} />
 
