@@ -85,12 +85,6 @@ export type IsolarMonthlyProductionPoint = {
   productionKwh: number;
 };
 
-/** One day of total PV production. `date` is an ISO "YYYY-MM-DD" anchor for locale-aware labelling. */
-export type IsolarDailyProductionPoint = {
-  date: string;
-  productionKwh: number;
-};
-
 /**
  * One timestamp of per-roof PV output (kW) for the intraday power chart. `time` is a
  * local ISO datetime with no offset (e.g. "2024-07-24T08:15:00") — the dashboard runs
@@ -109,7 +103,6 @@ export type IsolarRoofPowerPoint = {
  */
 export type IsolarStatistics = {
   monthly: IsolarMonthlyProductionPoint[];
-  daily: IsolarDailyProductionPoint[];
   /** Per-roof output over the most recent full day (the minute endpoint excludes today). */
   roofPower: IsolarRoofPowerPoint[];
 };

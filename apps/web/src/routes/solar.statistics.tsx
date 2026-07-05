@@ -6,7 +6,6 @@ import { TopBar } from "@/components/top-bar";
 import { GlassCard } from "@/components/dashboard/glass-card";
 import { IsolarEmptyState } from "@/components/dashboard/isolar-empty-state";
 import { MonthlyProductionCard } from "@/components/dashboard/monthly-production-card";
-import { RoofProductionCard } from "@/components/dashboard/roof-production-card";
 import { RoofPowerCard } from "@/components/dashboard/roof-power-card";
 import { useIsolar } from "@/components/isolar-context";
 import { useRegisterPageRefresh } from "@/components/page-refresh-context";
@@ -47,16 +46,12 @@ function SolarStatisticsPage() {
 
   return (
     <div className="min-h-screen w-full px-5 py-6 sm:px-8 lg:px-10">
-      <TopBar
-        title={t.pages.statisticsTitle}
-        subtitle={isSungrowConnected ? t.statistics.splitNote : undefined}
-      />
+      <TopBar title={t.pages.statisticsTitle} />
 
       {isSungrowConnected ? (
         <div className="grid grid-cols-12 gap-4">
           <MonthlyProductionCard data={stats?.monthly} className="lg:col-span-6" />
-          <RoofProductionCard dailyTotals={stats?.daily} className="lg:col-span-6" />
-          <RoofPowerCard data={stats?.roofPower} />
+          <RoofPowerCard data={stats?.roofPower} className="lg:col-span-6" />
         </div>
       ) : (
         <GlassCard className="flex min-h-[60vh] flex-col p-6">

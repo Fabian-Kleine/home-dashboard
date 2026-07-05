@@ -1,12 +1,11 @@
 /**
  * Sample statistics data + live-report fetch for the solar Statistics page.
  *
- * The monthly and daily *total* production come live from the backend's iSolarCloud
- * report endpoint (see apps/backend/src/lib/isolar.ts `getSolarStatistics`). But the
- * report only exposes plant-level totals — there's no per-MPPT (per-roof) historical
- * energy — so the East/West split is always derived from these deterministic sample
- * ratios. When no live data is available (not connected, or the report returns
- * nothing), the charts fall back to sample data entirely.
+ * Monthly total production comes live from the backend's iSolarCloud report endpoint,
+ * and per-roof intraday power comes live from the minute-level endpoint (see
+ * apps/backend/src/lib/isolar.ts `getSolarStatistics`). When no live data is available
+ * (not connected, or the report returns nothing), the charts fall back to the sample
+ * data below.
  *
  * Sample values are seeded off the calendar date so they stay stable across
  * re-renders (no flicker) while tracking a realistic northern-hemisphere curve.
@@ -38,15 +37,6 @@ export async function fetchIsolarStatistics(signal?: AbortSignal): Promise<Isola
   return payload as IsolarStatistics;
 }
 
-/**
- * Fraction of a day's production attributed to the East roof (the rest is West).
- * The two roofs face opposite ways, so the split wobbles day to day around ~50/50.
- */
-export function roofEastShare(date: Date): number {
-  const seed = date.getFullYear() * 372 + date.getMonth() * 31 + date.getDate();
-  return 0.46 + seededRandom(seed * 2) * 0.12;
-}
-
 /** Relative solar yield per calendar month (Jan…Dec) for this installation's latitude. */
 const SEASONAL_WEIGHT = [0.3, 0.45, 0.66, 0.85, 1.0, 1.06, 1.05, 0.94, 0.74, 0.5, 0.33, 0.25];
 
@@ -68,37 +58,6 @@ export function buildMonthlyProduction(reference: Date = new Date()): MonthlyPro
     points.push({
       date: date.toISOString(),
       productionKwh: Math.round(600 * weight * jitter),
-    });
-  }
-
-  return points;
-}
-
-export interface DailyRoofProductionPoint {
-  /** ISO date of the day, for locale-aware labelling in the component. */
-  date: string;
-  eastKwh: number;
-  westKwh: number;
-}
-
-/** Daily production split across the east and west roofs for the last `days` days (oldest first). */
-export function buildDailyRoofProduction(days = 14, reference: Date = new Date()): DailyRoofProductionPoint[] {
-  const points: DailyRoofProductionPoint[] = [];
-
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() - i);
-    const weight = SEASONAL_WEIGHT[date.getMonth()] ?? 1;
-    const seed = date.getFullYear() * 372 + date.getMonth() * 31 + date.getDate();
-
-    // Some days are cloudier than others, and the two roofs catch sun at different times.
-    const cloudFactor = 0.55 + seededRandom(seed) * 0.55;
-    const dayTotal = 26 * weight * cloudFactor;
-    const east = dayTotal * roofEastShare(date);
-
-    points.push({
-      date: date.toISOString(),
-      eastKwh: Math.round(east * 10) / 10,
-      westKwh: Math.round((dayTotal - east) * 10) / 10,
     });
   }
 

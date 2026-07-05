@@ -1,5 +1,4 @@
 import type {
-    IsolarDailyProductionPoint,
     IsolarMonthlyProductionPoint,
     IsolarPvString,
     IsolarRoofPowerPoint,
@@ -524,11 +523,9 @@ const YIELD_POINT = `p${POINT_DAILY_YIELD}`;
 
 const QUERY_TYPE_DAILY = "1";
 const QUERY_TYPE_MONTHLY = "2";
-const DATA_TYPE_PEAK = "2"; // per-day: peak of the resetting daily-yield counter = that day's total
 const DATA_TYPE_TOTAL = "4"; // per-month: summed yield across the month
 
 const MONTHS_WINDOW = 12;
-const DAYS_WINDOW = 14;
 
 // result_data is keyed by ps_key, then by point id, to a list of time-stamped buckets.
 type DayMonthYearResult = Record<string, Record<string, Array<Record<string, string>>>>;
@@ -543,10 +540,6 @@ function yyyymmdd(date: Date): string {
 
 function isoMonth(date: Date): string {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function isoDate(date: Date): string {
-    return `${isoMonth(date)}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 /**
@@ -711,9 +704,9 @@ async function getRoofPowerHistory(
 
 /**
  * Historical PV data for the Statistics page: total yield per month for the last 12
- * months, per day for the last 14 days, and per-roof power across the most recent full
- * day. Everything ends yesterday (the historical endpoints never return today). Missing
- * buckets simply don't appear; the frontend fills gaps with sample data.
+ * months, and per-roof power across the most recent full day. Everything ends yesterday
+ * (the historical endpoints never return today). Missing buckets simply don't appear;
+ * the frontend fills gaps with sample data.
  */
 export async function getSolarStatistics(
     token: string,
@@ -722,12 +715,9 @@ export async function getSolarStatistics(
     reference: Date = new Date()
 ): Promise<IsolarStatistics> {
     const monthStart = new Date(reference.getFullYear(), reference.getMonth() - (MONTHS_WINDOW - 1), 1);
-    const dayStart = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() - DAYS_WINDOW);
-    const yesterday = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() - 1);
 
-    const [monthlyBuckets, dailyBuckets, roofPower] = await Promise.all([
+    const [monthlyBuckets, roofPower] = await Promise.all([
         fetchYieldBuckets(token, psId, QUERY_TYPE_MONTHLY, DATA_TYPE_TOTAL, yyyymm(monthStart), yyyymm(reference)),
-        fetchYieldBuckets(token, psId, QUERY_TYPE_DAILY, DATA_TYPE_PEAK, yyyymmdd(dayStart), yyyymmdd(yesterday)),
         getRoofPowerHistory(token, inverter, reference),
     ]);
 
@@ -738,12 +728,5 @@ export async function getSolarStatistics(
         if (productionKwh !== undefined) monthly.push({ month: isoMonth(date), productionKwh });
     }
 
-    const daily: IsolarDailyProductionPoint[] = [];
-    for (let i = DAYS_WINDOW; i >= 1; i--) {
-        const date = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() - i);
-        const productionKwh = dailyBuckets.get(yyyymmdd(date));
-        if (productionKwh !== undefined) daily.push({ date: isoDate(date), productionKwh });
-    }
-
-    return { monthly, daily, roofPower };
+    return { monthly, roofPower };
 }
