@@ -1,9 +1,9 @@
 import type { AiOverviewRequest } from "@repo/shared";
+import NodeCache from "node-cache";
 import { Ollama } from "ollama";
-import { TtlCache } from "./cache.js";
 
-const OVERVIEW_CACHE_TTL_MS = 60 * 60 * 1000;
-const overviewCache = new TtlCache<string>(OVERVIEW_CACHE_TTL_MS);
+const OVERVIEW_CACHE_TTL_SECONDS = 60 * 60;
+const overviewCache = new NodeCache({ stdTTL: OVERVIEW_CACHE_TTL_SECONDS });
 
 function getOllamaClient(): Ollama {
   const apiKey = process.env.OLLAMA_API_KEY;
@@ -69,14 +69,17 @@ function buildPrompt(request: AiOverviewRequest): string {
 export async function getAiOverview(request: AiOverviewRequest): Promise<string> {
   const cacheKey = buildCacheKey(request);
 
-  return overviewCache.getOrSet(cacheKey, async () => {
-    const client = getOllamaClient();
-    const response = await client.chat({
-      model: getOllamaModel(),
-      messages: [{ role: "user", content: buildPrompt(request) }],
-      stream: false,
-    });
+  const cached = overviewCache.get<string>(cacheKey);
+  if (cached !== undefined) return cached;
 
-    return response.message.content.trim();
+  const client = getOllamaClient();
+  const response = await client.chat({
+    model: getOllamaModel(),
+    messages: [{ role: "user", content: buildPrompt(request) }],
+    stream: false,
   });
+
+  const overview = response.message.content.trim();
+  overviewCache.set(cacheKey, overview);
+  return overview;
 }
