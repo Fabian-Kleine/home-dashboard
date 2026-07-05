@@ -9,6 +9,17 @@ const newsCache = new NodeCache({ stdTTL: NEWS_CACHE_TTL_SECONDS });
 
 const DEFAULT_NEWS_URL = "https://www.tagesschau.de/api2u/news";
 
+// The dashboard merges these ressorts (regional slice `regions=10`) into one time-sorted feed.
+const NEWS_REGION = "10";
+const NEWS_RESSORTS = ["ausland", "inland"];
+
+function buildNewsUrl(base: string, ressort: string): string {
+  const url = new URL(base);
+  url.searchParams.set("regions", NEWS_REGION);
+  url.searchParams.set("ressort", ressort);
+  return url.toString();
+}
+
 // Prefer a 16:9 teaser at a card-friendly size, degrading to whatever the feed offers.
 const PREFERRED_IMAGE_KEYS = ["16x9-960", "16x9-640", "16x9-512", "16x9-1280", "16x9-384", "16x9-256"];
 
@@ -65,21 +76,50 @@ function normalizeArticle(raw: RawNewsArticle): NewsArticle | null {
   };
 }
 
+async function fetchRessort(url: string): Promise<NewsArticle[]> {
+  const response = await fetch(url, { headers: { Accept: "application/json" } });
+
+  if (!response.ok) {
+    throw new Error(`Tagesschau news API responded with ${response.status} for ${url}`);
+  }
+
+  const payload = (await response.json()) as RawNewsResponse;
+  return (payload.news ?? [])
+    .map(normalizeArticle)
+    .filter((article): article is NewsArticle => article !== null);
+}
+
 export async function getNewsData(): Promise<NewsData> {
   const cached = newsCache.get<NewsData>(NEWS_CACHE_KEY);
   if (cached) return cached;
 
-  const url = process.env.TAGESSCHAU_NEWS_URL || DEFAULT_NEWS_URL;
-  const response = await fetch(url, { headers: { Accept: "application/json" } });
+  const base = process.env.TAGESSCHAU_NEWS_URL || DEFAULT_NEWS_URL;
+  const results = await Promise.allSettled(
+    NEWS_RESSORTS.map((ressort) => fetchRessort(buildNewsUrl(base, ressort))),
+  );
 
-  if (!response.ok) {
-    throw new Error(`Tagesschau news API responded with ${response.status}`);
+  // Surface a failure only if every ressort failed; otherwise merge whatever came back.
+  if (results.every((result) => result.status === "rejected")) {
+    throw new Error("All Tagesschau news requests failed");
+  }
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.warn("A Tagesschau news ressort request failed:", result.reason);
+    }
   }
 
-  const payload = (await response.json()) as RawNewsResponse;
-  const articles = (payload.news ?? [])
-    .map(normalizeArticle)
-    .filter((article): article is NewsArticle => article !== null);
+  // Merge the ressorts, drop any id that appears in both, and sort newest-first by date.
+  const byId = new Map<string, NewsArticle>();
+  for (const result of results) {
+    if (result.status !== "fulfilled") continue;
+    for (const article of result.value) {
+      if (!byId.has(article.id)) byId.set(article.id, article);
+    }
+  }
+
+  const articles = [...byId.values()].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
 
   const data: NewsData = { articles, updatedAt: new Date().toISOString() };
   newsCache.set(NEWS_CACHE_KEY, data);
