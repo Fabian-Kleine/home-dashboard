@@ -12,7 +12,7 @@ const RootLayout = () => (
             <PageRefreshProvider>
                 <IsolarProvider>
                     <div
-                        className="flex min-h-screen w-full text-[#17323a] antialiased dark:text-slate-100"
+                        className="flex min-h-screen w-full self-start text-[#17323a] antialiased dark:text-slate-100"
                         style={{ background: "var(--mesh-background)", backgroundAttachment: "fixed" }}
                     >
                         <Sidebar />

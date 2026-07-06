@@ -31,7 +31,7 @@ function HomePage() {
   const data = FALLBACK_DASHBOARD_DATA;
   const [location] = useWeatherLocation(REFRESH_INTERVAL_MS);
   const { isLoggedIn: isSungrowConnected, solarData, refetchSolarData } = useIsolar();
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
 
   const weatherQuery = useQuery({
     queryKey: ["weather", location.latitude, location.longitude, location.timezone],
@@ -83,16 +83,7 @@ function HomePage() {
 
   return (
     <div className="min-h-screen w-full px-5 py-6 sm:px-8 lg:px-10">
-      <TopBar
-        title={greetingForHour(now.getHours(), t.greeting)}
-        subtitle={
-          <>
-            {now.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" })}
-            {" · "}
-            {now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
-          </>
-        }
-      />
+      <TopBar title={greetingForHour(now.getHours(), t.greeting)} />
 
       <div className="grid grid-cols-12 gap-4">
         <WeatherHeroCard

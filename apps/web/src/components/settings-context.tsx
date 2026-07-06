@@ -9,9 +9,12 @@ import {
 } from "react";
 
 import { getCookie, setCookie } from "@/lib/cookies";
+import { useSunTimes } from "@/lib/weather";
 
 export type ThemeMode = "auto" | "system" | "light" | "dark";
 export type Language = "en" | "de" | "nl";
+
+type SunTimes = { sunrise?: string; sunset?: string };
 
 type SettingsContextValue = {
   theme: ThemeMode;
@@ -26,6 +29,7 @@ const LANGUAGE_COOKIE = "aurora_language";
 const LANGUAGE_COOKIE_MAX_AGE_DAYS = 365;
 const NIGHT_START_HOUR = 19;
 const DAY_START_HOUR = 7;
+const SUN_TIMES_MAX_AGE_MS = 5 * 60 * 1000;
 
 function isLanguage(value: string | null): value is Language {
   return value === "en" || value === "de" || value === "nl";
@@ -38,11 +42,39 @@ function isNightByTimeOfDay(date: Date) {
   return hour < DAY_START_HOUR || hour >= NIGHT_START_HOUR;
 }
 
-function resolveIsDark(theme: ThemeMode) {
+/** Parses a local `"HH:MM"` clock string into minutes-since-midnight, or null if malformed. */
+function parseTimeToMinutes(value: string): number | null {
+  const [hourText, minuteText] = value.split(":");
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+
+  if (hourText === undefined || minuteText === undefined || Number.isNaN(hour) || Number.isNaN(minute)) {
+    return null;
+  }
+
+  return hour * 60 + minute;
+}
+
+/** Whether it's currently night per real sunrise/sunset, or null when times are missing/unparseable. */
+function isNightBySunTimes(date: Date, sunTimes: SunTimes): boolean | null {
+  if (!sunTimes.sunrise || !sunTimes.sunset) return null;
+
+  const sunriseMinutes = parseTimeToMinutes(sunTimes.sunrise);
+  const sunsetMinutes = parseTimeToMinutes(sunTimes.sunset);
+  if (sunriseMinutes === null || sunsetMinutes === null) return null;
+
+  const nowMinutes = date.getHours() * 60 + date.getMinutes();
+  return nowMinutes < sunriseMinutes || nowMinutes >= sunsetMinutes;
+}
+
+function resolveIsDark(theme: ThemeMode, sunTimes: SunTimes) {
   if (theme === "light") return false;
   if (theme === "dark") return true;
   if (theme === "system") return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  return isNightByTimeOfDay(new Date());
+
+  // "auto": follow the real sun when we have it, otherwise fall back to fixed hours.
+  const now = new Date();
+  return isNightBySunTimes(now, sunTimes) ?? isNightByTimeOfDay(now);
 }
 
 function readStoredTheme(): ThemeMode {
@@ -64,6 +96,7 @@ function readStoredLanguage(): Language {
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>(readStoredTheme);
   const [language, setLanguageState] = useState<Language>(readStoredLanguage);
+  const { sunrise, sunset } = useSunTimes(SUN_TIMES_MAX_AGE_MS);
 
   const setTheme = useCallback((next: ThemeMode) => {
     setThemeState(next);
@@ -78,7 +111,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const applyTheme = () => {
-      document.documentElement.classList.toggle("dark", resolveIsDark(theme));
+      document.documentElement.classList.toggle("dark", resolveIsDark(theme, { sunrise, sunset }));
     };
 
     applyTheme();
@@ -93,7 +126,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const interval = setInterval(applyTheme, 60 * 1000);
       return () => clearInterval(interval);
     }
-  }, [theme]);
+  }, [theme, sunrise, sunset]);
 
   useEffect(() => {
     document.documentElement.lang = language;

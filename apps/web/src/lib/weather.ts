@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { API_ROUTES, type WeatherData, type WeatherRequestParams } from "@repo/shared";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:4000";
@@ -53,4 +54,24 @@ export function useWeatherLocation(maximumAgeMs: number) {
   }, [maximumAgeMs]);
 
   return [location, setLocation] as const;
+}
+
+/**
+ * Today's sunrise/sunset (local `"HH:MM"` strings) for the resolved location.
+ * Shares the home/solar dashboards' `["weather", …]` query cache, so this adds
+ * no extra network request when those pages are also mounted. Used by the "auto"
+ * theme to switch light/dark on the real sun, not a fixed hour.
+ */
+export function useSunTimes(maximumAgeMs: number) {
+  const [location] = useWeatherLocation(maximumAgeMs);
+
+  const query = useQuery({
+    queryKey: ["weather", location.latitude, location.longitude, location.timezone],
+    queryFn: async ({ signal }) => (await fetchWeather(location, signal)).current,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    staleTime: maximumAgeMs - 1_000,
+  });
+
+  return { sunrise: query.data?.sunrise, sunset: query.data?.sunset };
 }

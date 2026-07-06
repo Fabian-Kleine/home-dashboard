@@ -7,7 +7,7 @@ import { formatRelativeTime } from "@/lib/news";
 import { useTranslation } from "@/lib/use-translation";
 import { cn } from "@/lib/utils";
 
-const WIDGET_ARTICLE_COUNT = 5;
+const WIDGET_ARTICLE_COUNT = 4;
 
 function NewsRow({ article }: { article: NewsArticle }) {
   const { t, locale } = useTranslation();

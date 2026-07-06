@@ -67,17 +67,17 @@ export function Sidebar() {
         <>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button
+                    <button
+                        type="button"
+                        aria-label={t.sidebar.toggleMenu}
+                        onClick={() => setIsOpen((open) => !open)}
                         className={cn(
-                            "fixed left-2 top-2 z-40 flex text-[#0f7d74] dark:text-teal-300",
+                            "fixed left-2 top-2 z-20 flex size-10 items-center justify-center rounded-2xl border border-white/40 bg-white/25 text-[#17323a]/55 backdrop-blur-md transition-colors hover:bg-white/45 hover:text-[#0f7d74] dark:border-white/10 dark:bg-white/10 dark:text-slate-300/70 dark:hover:bg-white/15 dark:hover:text-teal-300",
                             !isFullscreen && "md:hidden",
                         )}
-                        variant="ghost"
-                        size="icon-lg"
-                        onClick={() => setIsOpen((open) => !open)}
                     >
-                        <IconMenu2 className="size-5" />
-                    </Button>
+                        <IconMenu2 className="size-4.5" />
+                    </button>
                 </TooltipTrigger>
                 <TooltipContent>
                     <p>{t.sidebar.toggleMenu}</p>

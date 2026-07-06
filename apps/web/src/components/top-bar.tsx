@@ -11,6 +11,7 @@ import {
 } from "@tabler/icons-react";
 
 import { cn } from "@/lib/utils";
+import { DateTimeSubtitle } from "@/components/date-time-subtitle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,13 +30,15 @@ import { usePageRefreshControls } from "@/components/page-refresh-context";
 import { useSettings, type Language, type ThemeMode } from "@/components/settings-context";
 import { useTranslation } from "@/lib/use-translation";
 
-/** Shared page header: title/subtitle slot on the left, refresh/fullscreen/settings controls on the right. Refresh state comes from whatever the current route registered via `useRegisterPageRefresh`. */
+/** Shared page header: title/subtitle slot on the left, refresh/fullscreen/settings controls on the right. Refresh state comes from whatever the current route registered via `useRegisterPageRefresh`. Defaults to a live date/time subtitle so every page shows the current time. */
 export function TopBar({ title, subtitle }: { title: ReactNode; subtitle?: ReactNode }) {
   const { isFullscreen, isSupported, toggleFullscreen, container } = useFullscreen();
   const { theme, setTheme, language, setLanguage } = useSettings();
   const { isLoggedIn: isSungrowConnected, openLoginDialog, logout: disconnectSungrow } = useIsolar();
   const { refreshConfig } = usePageRefreshControls();
   const { t } = useTranslation();
+
+  const resolvedSubtitle = subtitle ?? <DateTimeSubtitle />;
 
   const handleRefresh = () => {
     void refreshConfig.onRefresh?.();
@@ -45,9 +48,9 @@ export function TopBar({ title, subtitle }: { title: ReactNode; subtitle?: React
     <header className="mb-5 flex items-center justify-between gap-4 px-1">
       <div className="min-w-0">
         <div className="truncate text-2xl font-semibold tracking-tight">{title}</div>
-        {subtitle && (
+        {resolvedSubtitle && (
           <div className="mt-0.5 text-[13.5px] font-bold text-[#17323a]/60 dark:text-slate-300/70">
-            {subtitle}
+            {resolvedSubtitle}
           </div>
         )}
       </div>

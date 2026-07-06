@@ -9,6 +9,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { cn } from "@/lib/utils";
+
 type FullscreenContextValue = {
   isFullscreen: boolean;
   isSupported: boolean;
@@ -72,7 +74,15 @@ export function FullscreenProvider({ children }: { children: ReactNode }) {
 
   return (
     <FullscreenContext.Provider value={value}>
-      <main ref={setContainerRef} className="flex min-h-screen overflow-x-clip bg-black">
+      <main
+        ref={setContainerRef}
+        className={cn(
+          "flex min-h-screen overflow-x-clip bg-black",
+          // In fullscreen the UA fixes this element to the screen height, so its
+          // overflow must scroll or taller pages get clipped with no way to reach them.
+          isFullscreen && "overflow-y-auto",
+        )}
+      >
         {children}
       </main>
     </FullscreenContext.Provider>
